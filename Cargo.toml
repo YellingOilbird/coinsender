@@ -1,0 +1,22 @@
+[package]
+name = "coinsender"
+version = "1.0.0"
+authors = ["guacharo"]
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "lib"]
+
+[dependencies]
+near-sdk = "4.0.0"
+near-contract-standards = "4.0.0"
+near-sys = "0.1.0"
+# workspaces = 0.1.1
+
+[profile.release]
+codegen-units = 1
+opt-level = "s"
+lto = true
+debug = false
+panic = "abort"
+overflow-checks = true
