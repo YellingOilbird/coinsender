@@ -9,14 +9,16 @@ pub struct WhitelistedToken {
     pub contract_id: TokenContractId,
     pub ticker: Option<String>,
     pub decimals: u8,
+    pub icon: Option<String>
 }
 
 impl WhitelistedToken {
-    fn new(contract_id: TokenContractId, ticker: Option<String>, decimals: u8) -> Self {
+    fn new(contract_id: TokenContractId, ticker: Option<String>, decimals: u8, icon: Option<String>) -> Self {
         Self {
             contract_id, 
             ticker, 
-            decimals 
+            decimals,
+            icon 
         }
     }
 }
@@ -25,6 +27,7 @@ impl WhitelistedToken {
 #[ext_contract(ft_contract)]
 pub trait FungibleToken {
     fn storage_deposit(&self, account_id: AccountId);
+    fn storage_balance_of(&self, account_id: AccountId) -> Option<StorageBalance>;
     fn ft_transfer(&mut self, receiver_id: AccountId, amount: U128, memo: Option<String>);
     fn ft_metadata(&self) -> FungibleTokenMetadata;
 }
@@ -59,11 +62,21 @@ impl Contract {
 
 #[near_bindgen]
 impl Contract {
+    #[private]
+    pub fn remove_token(&mut self, token_id: TokenContractId) {
+        assert!(self.assert_owner_or_self(), "{}", ERR_NOT_ALLOWED);
+        if self.is_token_whitelisted(token_id.clone()) {
+            self.tokens.remove(&token_id);
+        } else {
+            panic!("{}", ERR_TOKEN_NOT_WHITELISTED);
+        }
+    }
     #[payable]
     pub fn whitelist_token(&mut self, token_id: AccountId) {
 
         assert!(self.assert_owner_or_self(), "{}", ERR_NOT_ALLOWED);
         assert_one_yocto();
+        assert!(!self.is_token_whitelisted(token_id.clone()));
         //storage deposit for our contract for have ability to receive deposits in this token
         ft_contract::ext(token_id.clone())
             .with_attached_deposit(STORAGE_DEPOSIT)
@@ -78,35 +91,6 @@ impl Contract {
                 .on_ft_metadata(token_id)
             );
     }
-    //register multiple accounts to TOKEN_CONTRACT. Because of gas limit it may be only less then 50 accounts
-    #[payable]
-    pub fn multi_storage_deposit(&mut self, accounts: Vec<AccountId>, token_id: TokenContractId) {
-        
-        assert!(self.is_token_whitelisted(token_id.clone()),"{}", ERR_TOKEN_NOT_WHITELISTED);
-
-        let total_accounts = accounts.len();
-        assert!(total_accounts <= 50,"{}", ERR_TOO_MANY_ACCOUNTS);
-
-        // deposit requested for storage_deposit for 1 account into FT contract
-        let storage_bond: u128 = 125 * STORAGE_PRICE_PER_BYTE;
-
-        // deposit requested for storage_deposit for all accounts into FT contract
-        let total_storage_bond: u128 = storage_bond * total_accounts as u128;
-
-        assert!(
-            env::attached_deposit() >= total_storage_bond,
-            "ERR_SMALL_DEPOSIT: YOU NEED {} yN MORE FOR THIS FUNCTION_CALL", (total_storage_bond - env::attached_deposit())
-        );
-
-        for account in accounts {
-            ft_contract::ext(token_id.clone())
-                .with_attached_deposit(STORAGE_DEPOSIT)
-                .with_static_gas(CALLBACK_GAS)
-                    .storage_deposit(account.clone());
-            log!("Register or check @{} into {} token storage", account, self.get_token_ticker(token_id.clone()))
-        }
-    }
-
     #[private]
     pub fn on_ft_metadata(&mut self, token_id: TokenContractId) {
 
@@ -124,13 +108,15 @@ impl Contract {
                 let token_data = WhitelistedToken::new(
                     token_id.clone(),
                     Some(ft_metadata.symbol),
-                    ft_metadata.decimals
+                    ft_metadata.decimals,
+                    ft_metadata.icon
                 );
                 self.tokens.insert(&token_id, &token_data);
                 log!("token ${:?} successfully whitelisted", token_data.ticker.unwrap());
             }
         }
     }
+
 }
 
 #[near_bindgen]

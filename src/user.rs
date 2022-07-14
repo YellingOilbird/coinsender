@@ -7,9 +7,9 @@ pub const E24_DECIMALS:u8 = 24;
 #[derive(BorshSerialize, BorshDeserialize)]
 pub struct Vault {
     // amount of NEAR in user vault
-    near_deposit: Balance,
+    pub near_deposit: Balance,
     // amounts of FT in user vault
-    token_deposits: UnorderedMap<AccountId, WeightedBalance>,
+    pub token_deposits: UnorderedMap<AccountId, WeightedBalance>,
     // stats
     near_sends_num: u64,
     ft_sends_num: u64,
@@ -111,13 +111,13 @@ impl Contract {
         if action == UpdateVaultAction::AfterNewSend {
             // FT
             if let Some(unwrapped_token_id) = token_id {
-                // TODO : use this to print human-readable views in VaultOutput
                 let token_data = self.tokens.get(&unwrapped_token_id.clone()).unwrap();
                 let decimals = token_data.decimals;
                 let ticker = token_data.ticker.unwrap();
                 let new_balance = previous_balance.unwrap() - tokens_used;
-
-                vault.ft_sends_num += 1;
+                if tokens_used > 0 {
+                    vault.ft_sends_num += 1;
+                };
                 if !vault.tokens_used.contains(&ticker) {
                     vault.tokens_used.push(ticker.clone())
                 };
@@ -130,34 +130,35 @@ impl Contract {
             }
         // After not success send from balance update (only for safety-transfer, not for unsafe)
         } else if action == UpdateVaultAction::AfterNotSuccessSend {
+            // FT
             if let Some(unwrapped_token_id) = token_id {
                 let token_data = self.tokens.get(&unwrapped_token_id.clone()).unwrap();
                 let decimals = token_data.decimals;
                 let new_balance = previous_balance.unwrap() + tokens_used;
 
-                vault.ft_sends_num -= 1;
                 vault.token_deposits.insert(&unwrapped_token_id, &(new_balance, decimals));
+            // NEAR
             } else {
-                vault.near_sends_num -= 1;
-                vault.total_near_amount_sent -= tokens_used;
                 vault.near_deposit += tokens_used;
             }
         // After deposit update
-        // FT
         } else if action == UpdateVaultAction::AfterDeposit {
+            // FT
             if let Some(unwrapped_token_id) = token_id {
                 let token_data = self.tokens.get(&unwrapped_token_id.clone()).unwrap();
                 let decimals = token_data.decimals;
                 let new_balance = previous_balance.unwrap() + tokens_used;
 
                 vault.token_deposits.insert(&unwrapped_token_id, &(new_balance, decimals));
+            // NEAR
             } else {
                 vault.near_deposit += tokens_used;
             }
-        // NEAR
         } else if action == UpdateVaultAction::AfterWithdraw {
+            // FT
             if let Some(unwrapped_token_id) = token_id {
                 vault.token_deposits.insert(&unwrapped_token_id, &(NO_DEPOSIT, E24_DECIMALS));
+            // NEAR
             } else {
                 vault.near_deposit = NO_DEPOSIT;
             }
@@ -184,12 +185,12 @@ impl Contract {
     pub fn deposit_near(&mut self)  {
         let attached_tokens: u128 = env::attached_deposit(); 
         let account_id = env::predecessor_account_id();
-
+        let previous_balance = self.get_deposit_by_token(account_id.clone(), None).0;
         // update info about user deposit in MULTISENDER
         self.internal_update_user_vault(
             UpdateVaultAction::AfterDeposit, 
             account_id, 
-            None,
+            Some(previous_balance),
             None, 
             Some(attached_tokens)
         );
@@ -285,14 +286,14 @@ impl Contract {
         if let Some(unwrapped_token_id) = token_id {
             match vault.token_deposits.get(&unwrapped_token_id) {
                 Some((deposit, _)) => {
-                    deposit.into()
+                    U128(deposit)
                 }
                 None => {
-                    0.into()
+                    U128(0)
                 }
             }
         } else {
-            vault.near_deposit.into()
+            U128(vault.near_deposit)
         }
     }
 }

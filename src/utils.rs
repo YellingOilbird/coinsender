@@ -1,3 +1,4 @@
+use crate::*;
 use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::{env, AccountId, Balance, BorshStorageKey, Gas, PromiseResult, json_types::U128};
@@ -23,7 +24,6 @@ pub const ERR_STATE_NOT_INITIALIZED: &str = "State doesn't exists";
 pub const ERR_UNKNOWN_USER: &str = "User don't have any deposited tokens on Multisender balance";
 pub const ERR_TOKEN_NOT_WHITELISTED: &str = "Cannot find this token in whitelisted. You must whitelist this one before deposit";
 pub const ERR_NOTHING_TO_WITHDRAW: &str = "No tokens on multisender balance to withdraw!. Check your balances";
-pub const ERR_TOO_MANY_ACCOUNTS: &str = "Contract can register <50 accounts per one tx!";
 pub const ERR_NOT_ALLOWED: &str = "Owner's method";
 pub const ERR_OWNER_NOT_SET: &str = "Contract doesn't have an owner right now";
 /// Callback errors

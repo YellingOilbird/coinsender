@@ -1,0 +1,194 @@
+use crate::*;
+use crate::web4helper::*;
+use near_sdk::json_types::Base64VecU8;
+use std::collections::HashMap;
+use std::str::FromStr;
+
+#[allow(dead_code)]
+#[derive(Serialize, Deserialize)]
+#[serde(crate = "near_sdk::serde")]
+pub struct Web4Request {
+    #[serde(rename = "accountId")]
+    account_id: Option<AccountId>,
+    path: Option<String>,
+    params: Option<HashMap<String, String>>,
+    query: Option<HashMap<String, Vec<String>>>,
+    preloads: Option<HashMap<String, Web4Response>>,
+}
+
+#[derive(Serialize, Deserialize, Default)]
+#[serde(crate = "near_sdk::serde")]
+pub struct Web4Response {
+    #[serde(rename = "contentType")]
+    content_type: Option<String>,
+    status: Option<u32>,
+    body: Option<Base64VecU8>,
+    #[serde(rename = "bodyUrl")]
+    body_url: Option<String>,
+    #[serde(rename = "preloadUrls")]
+    preload_urls: Option<Vec<String>>,
+}
+
+impl Web4Response {
+    pub fn html_response(text: String) -> Self {
+        Self {
+            content_type: Some(String::from("text/html; charset=UTF-8")),
+            body: Some(text.into_bytes().into()),
+            ..Default::default()
+        }
+    }
+
+    pub fn plain_response(text: String) -> Self {
+        Self {
+            content_type: Some(String::from("text/plain; charset=UTF-8")),
+            body: Some(text.into_bytes().into()),
+            ..Default::default()
+        }
+    }
+
+    pub fn preload_urls(urls: Vec<String>) -> Self {
+        Self {
+            preload_urls: Some(urls),
+            ..Default::default()
+        }
+    }
+
+    pub fn body_url(url: String) -> Self {
+        Self {
+            body_url: Some(url),
+            ..Default::default()
+        }
+    }
+
+    pub fn status(status: u32) -> Self {
+        Self {
+            status: Some(status),
+            ..Default::default()
+        }
+    }
+}
+
+#[near_bindgen]
+impl Contract {
+    #[allow(unused_variables)]
+    pub fn web4_get(&self, request: Web4Request) -> Web4Response {
+        let path = request.path.expect("ERR_PATH_EXPECTED");
+
+        // Test
+        if path == "/test.txt" {
+            return Web4Response::status(404);
+        }
+
+        // Only NEAR
+        // "/processing/verify/NEAR/user.testnet"
+        // index.html => verify.html
+        if path.starts_with("/processing/verify/NEAR/") {
+            let user = AccountId::from_str(&path[24..]).expect("ERR_INVALID_ACCOUNT_ID");
+            let user_balance = self.get_deposit_by_token(user, None).0;
+            let decimals = 24;
+            let mut user_balance_formatted = yocto_ft(user_balance, decimals).to_string();
+            user_balance_formatted = format!("{} NEAR", 
+                &user_balance_formatted,
+            );
+
+            return Web4Response::html_response(
+            include_str!("../res/verify.html")
+                .replace("%CONTRACT_ID%", &env::current_account_id().to_string())
+                .replace("%BALANCE%", &user_balance_formatted)
+            )
+        }
+        // "/processing/send/NEAR/user.testnet"
+        // verify.html => main.html (for send)
+        if path.starts_with("/processing/send/NEAR/") {
+            let user = AccountId::from_str(&path[22..]).expect("ERR_INVALID_ACCOUNT_ID");
+            let user_balance = self.get_deposit_by_token(user, None).0;
+            let decimals = 24;
+            let mut user_balance_formatted = yocto_ft(user_balance, decimals).to_string();
+            user_balance_formatted = format!("{} NEAR", 
+                &user_balance_formatted,
+            );
+
+            return Web4Response::html_response(
+            include_str!("../res/main.html")
+                .replace("%CONTRACT_ID%", &env::current_account_id().to_string())
+                .replace("%BALANCE%", &user_balance_formatted)
+            )
+        }
+
+        // Only FT
+        // "/processing/verify/ft/token.testnet/user.testnet"
+        // index.html => verify.html
+        if path.starts_with("/processing/verify/ft/") {
+            let parsed_accounts: AccountBalance = parse_user_and_token_ids(path, Web4Pages::Verify);
+            let token: AccountId = parsed_accounts.token_id;
+            let user: AccountId = parsed_accounts.user;
+            let user_balance = self.get_deposit_by_token(user, Some(token.clone())).0;
+            let ticker = self.get_token_ticker(token.clone());
+            let decimals = self.get_token_decimals(token);
+            let mut user_balance_formatted = yocto_ft(user_balance, decimals).to_string();
+            user_balance_formatted = format!("{} {}", 
+                &user_balance_formatted,
+                &ticker
+            );
+
+            return Web4Response::html_response(
+            include_str!("../res/verify.html")
+                .replace("%CONTRACT_ID%", &env::current_account_id().to_string())
+                .replace("%BALANCE%", &user_balance_formatted)
+            )
+        }
+
+        // "/processing/send/ft/token.testnet/user.testnet"
+        // verify.html => main.html (for send)
+        if path.starts_with("/processing/send/ft/") {
+            let parsed_accounts: AccountBalance = parse_user_and_token_ids(path, Web4Pages::Send);
+            let token:AccountId = parsed_accounts.token_id;
+            let user:AccountId = parsed_accounts.user;
+            let user_balance = self.get_deposit_by_token(user, Some(token.clone())).0;
+            let ticker = self.get_token_ticker(token.clone());
+            let decimals = self.get_token_decimals(token);
+            let mut user_balance_formatted = yocto_ft(user_balance, decimals).to_string();
+            user_balance_formatted = format!("{} {}", 
+                &user_balance_formatted,
+                &ticker
+            );
+
+            return Web4Response::html_response(
+            include_str!("../res/main.html")
+                .replace("%CONTRACT_ID%", &env::current_account_id().to_string())
+                .replace("%BALANCE%", &user_balance_formatted)
+            )
+        }
+
+        // Index
+        let mut app_html = "".to_string();
+        let mut select_options="".to_string();
+        for (account_id, token_data) in self.get_whitelisted_tokens() {
+            // supported tokens to view
+            app_html = format!("{}<tr><td><img src=brackets{}brackets/></td><td> {}</td></tr>", 
+                &app_html,
+                token_data.icon.unwrap_or_default(),
+                token_data.ticker.clone().unwrap_or_default(),
+            );
+            app_html = replace_brackets(app_html);
+            // supported tokens to select
+            
+            // <option value='NEAR:24'>NEAR</option>
+
+            
+            select_options = format!("{}<option value='{}:{}:{}''>{}</option>", 
+                &select_options,
+                account_id.clone(),
+                token_data.decimals,
+                token_data.ticker.clone().unwrap_or_default(),
+                token_data.ticker.unwrap_or_default()
+            );
+        }
+
+        Web4Response::html_response(
+            include_str!("../res/index.html")
+                .replace("%TOKENS%", &app_html)
+                .replace("%TOKENOPTIONS%", &select_options)
+        )
+    }
+}

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coinsender</title>
+</head>
+
+<body>
+    <meta name="og:title" content="Coinsender"/>
+    <meta name="og:description" content="Coinsender"/>
+    <link href="https://unpkg.com/nes.css@latest/css/nes.min.css" rel="stylesheet" />
+    <link href="https://nostalgic-css.github.io/NES.css/style.css" rel="stylesheet" />
+    <!--STYLES-->
+    <style>
+        
+        @font-face {
+            font-family: 'kongtext';
+            src: url('./assets/kongtext-webfont.woff2') format('woff2'),
+            url('/assets/kongtext-webfont.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+        }
+
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/near-api-js@0.41.0/dist/near-api-js.min.js"></script>
+    <script>
+        window.onload = () => {
+            GetSelectedTokenId();
+            let accounts = localStorage.getItem("operations");
+            const obj = JSON.parse(accounts);
+            const pretty = JSON.stringify(obj, undefined, 4);
+            document.getElementById("accounts_finality").value = pretty;
+        }
+        // helpers
+        const gas = 300000000000000;        
+        const contractName = 'v2coinsender.testnet';        // token_id
+        const token_id = localStorage.getItem("token_id");
+        const token_ticker = localStorage.getItem("token_ticker");
+        // connect to NEAR
+        const near = new nearApi.Near({
+          keyStore: new nearApi.keyStores.BrowserLocalStorageKeyStore(),
+          networkId: 'testnet',
+          nodeUrl: 'https://rpc.testnet.near.org',
+          walletUrl: 'https://wallet.testnet.near.org'
+        });
+        // connect to the NEAR Wallet
+        const wallet = new nearApi.WalletConnection(near);
+        // connect to a NEAR smart contract
+        const contract = new nearApi.Contract(wallet.account(), contractName, {
+            viewMethods: ['get_whitelisted_tokens','get_user_vault'],
+            changeMethods: ['multi_storage_deposit','send_from_balance_unsafe','send_from_balance','deposit_near']
+        });
+        // get FT Contract 
+        const contractFT = new nearApi.Contract(wallet.account(), token_id, {
+            viewMethods: ['storage_balance_of'],
+            changeMethods: ['storage_deposit', 'ft_transfer_call'] 
+        });
+
+        async function signIn() {
+            await getContracts().then(async (config) => {
+                let wallet = config.wallet;
+                wallet.requestSignIn({
+                    contractId: contractName,
+                    methodNames: ['multi_storage_deposit','send_from_balance_unsafe','send_from_balance','deposit_near']
+                });
+            });
+        }
+        // trim utils for convert
+        function trimLeadingZeroes(value) {
+            value = value.replace(/^0+/, '');
+            if (value === '') {
+                return '0';
+            }
+            return value;
+        }
+        // convert
+        function ConvertToYocto(amt, dec){
+            if (!amt) {
+                return null;
+            }
+            dec = Number(dec);
+            amt = String(amt);
+            amt = amt.replace(/,/g, '').trim();
+            const split = amt.split('.');
+            const wholePart = split[0];
+            const fracPart = split[1] || '';
+            if (split.length > 2 || fracPart.length > dec) {
+                throw new Error(`Cannot parse '${amt}' as '${localStorage.getItem("token_ticker")} amount`);
+            }
+            return trimLeadingZeroes(wholePart + fracPart.padEnd(dec, '0'));
+        }
+        // parse 
+        function parseAmounts(){
+            /*
+            first character: [0-9a-zA-Z]
+            account_id: [\_\-0-9a-zA-Z.]*
+            separator: [\t,|\||=| ]
+            amount ([0-9\.\,]+)
+            */
+            let input = document.getElementById('accounts').value;
+            const pattern = RegExp(/^([0-9a-zA-Z][\_\-0-9a-zA-Z.]*)[\t,|\||=| ]([0-9\.\,]+$)/, 'gm');
+            let accounts = {};
+            let result;
+            let total = 0;
+            while ((result = pattern.exec(input)) !== null) {
+              const account_name = result[1].toLowerCase();
+              const amount = parseFloat(result[2].replace(',', '.').replace(' ', ''))
+              if (result[1] && amount) {
+                if (accounts.hasOwnProperty(account_name)) {
+                    accounts[account_name] += amount;
+                } else
+                    accounts[account_name] = amount;
+
+                total += amount;
+              }
+            }
+            localStorage.setItem("total", total);
+            localStorage.setItem("operations", accounts ? JSON.stringify(accounts) : "[]");
+        };
+        // set token_id to field from local storage
+        function GetSelectedTokenId() {
+            document.getElementById("token").innerHTML = localStorage.getItem("token_ticker"); 
+        }
+        // NEAR
+        async function getNearApi() {
+            if (token_id == 'NEAR') {
+                console.log(`connected to near. ${token_ticker} on send`);
+                return near
+            } else {
+                console.log(`connected to near. ${token_ticker} on send`);
+                return near
+            }
+        }
+        // Contract & FT Conract
+        async function getContracts() {
+            const contractConfig = {
+                wallet: wallet,
+                networkId: near.networkId,
+                contract: contract,
+                contractFT: contractFT
+            }
+            return contractConfig
+        }
+
+        // const button = document.getElementById('sign');
+        // if (!wallet.isSignedIn()) {
+        //     console.log(")!)(*&#^%$");
+        //     wallet.requestSignIn({
+        //             contractId: contractName,
+        //             methodNames: ['multi_storage_deposit','send_from_balance_unsafe','send_from_balance'],
+        //     });
+        // };
+
+        // main function
+        // async function depositTokens() {
+        //     await this.getContracts().then(async (config) =>  {
+        //         let total = localStorage.getItem("total");
+        //         if (token_id == 'NEAR') {
+        //             let contract = config.contract;
+        //             contract.deposit_near({}, gas, total);
+        //         } else {
+        //             let contractFT = config.contractFT;
+        //             contractFT.ft_transfer_call({
+        //                 receiver_id: contractName,
+        //                 amount: total, 
+        //                 msg:"deposit"
+        //             }, gas, total);
+        //         }
+        //         // THEN GO TO SEND
+        //         // enable send
+        //         var deps = document.getElementsByClassName('send');
+        //         Array.from(deps).forEach((el) => {
+        //             if (el.style.display == 'none') {
+        //                 el.style.display = 'block';
+        //             }
+        //         });
+        //         document.getElementById("button_send").style.display = 'block';
+        //         // disable deposit
+        //         var verfs = document.getElementsByClassName('deposit');
+        //         Array.from(verfs).forEach((el) => {
+        //             if (el.style.display != 'none') {
+        //                 el.style.display = 'none';
+        //             }
+        //         });
+        //         document.getElementById("button_deposit").style.display = 'none';
+        //     });
+        // }  
+
+        // MATCHED TO YOCTO DEC
+                // Object.keys(accountsRaw).forEach(key => {
+                //     accountsRaw[key] = ConvertToYocto(accountsRaw[key], decimals);
+                //     total_yocto+= accountsRaw[key];
+                // });
+    </script>
+<section class="item" style="background-color:cornflowerblue;">
+<div class="nes-badge" style="top:10px">
+    <span class="is-warning" id="token"></span>
+</div>
+<div id="deposit-container" class="nes-badge is-icon" style="left: 350px; top: 20px;">
+    <span class="is-dark"><i class="nes-icon coin is-small"></i></span>
+    <span class="is-success" id="deposit" style="color: black;">%BALANCE%</span>
+</div>
+</section>
+<div class="data" style="top:20px">
+    <section class="topic">
+        <section id = "main", class="nes-container with-title is-centered", style="top: 10px;">
+            <p style="font-family:monospace;">
+                <a style="right: 600px;">⬆️ choosed token</a>
+                <a style="text-align:right;">/ app balance ⬆️</a>
+            </p>
+            <!--send-->
+            <div class="send">
+              <h3 class="title", style="font-size: 32px; animation: blink 3s ease-in-out; margin-top: 10px">
+                <i class="nes-icon coin is-large"></i> --> <i class="nes-icon coin"></i><i class="nes-icon coin"></i><i class="nes-icon coin"></i>
+              </h3>
+              <p><strong>send</strong></p>
+            </div> 
+            <div class="item">
+                <button id="button_send_unsafe" class="nes-btn is-warning" onclick="send_unsafe()" style="top: 10px;">SEND UNSAFE</button>
+                <button id="button_send_safe" class="nes-btn" onclick="send()" style="top: 10px;">SEND</button>
+                <button id="button_withdraw"  class="nes-btn is-success" style="top: 10px;" onclick="withdraw()">WITHDRAW</button>
+            </div>
+        </section>
+    </section>
+</div>
+<div class="nes-container with-title" style="text-align:center;">
+    <h3 class="title" style="margin-bottom: 20px;">account, amount (prepared)</h3>
+    <textarea
+        style="min-width: 500px;font-family:system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;"
+        id="accounts_finality"
+        onclick='this.style.height = ""; this.style.height = this.scrollHeight + "px"'
+        autoComplete="off"
+    ></textarea>
+</div>
+<p id="contract_id" style="display: none;">%CONTRACT_ID%</p>
+</body>
+</html>

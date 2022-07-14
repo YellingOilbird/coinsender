@@ -32,11 +32,24 @@ impl Contract {
             panic!("{}", ERR_OWNER_NOT_SET)
         }
     }
+    #[payable]
+    /// Method to fill Account 
+    pub fn transfer_near_to_contract(&mut self) {
+        let attached_deposit = env::attached_deposit();
+        assert!(attached_deposit > 0, "ERR_NEGATIVE_DEPOSIT");
+        Promise::new(env::signer_account_id())
+                    .transfer(attached_deposit);
+        log!(
+            "@{} transfer {} yoctoNEAR to contract balance", 
+            env::signer_account_id(),
+            attached_deposit
+        )
+    }
     /// A method to migrate a state during the contract upgrade.
     /// Can only be called after upgrade method.
     #[private]
     #[init(ignore_state)]
-    pub fn migrate_state() -> Self {
+    pub fn migrate() -> Self {
         let contract: Self = env::state_read().expect(ERR_STATE_NOT_INITIALIZED);
         contract
     }
