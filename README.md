@@ -4,8 +4,10 @@
     `cargo build --target wasm32-unknown-unknown --release`
 
 #### Contract deploy
+
 ```near dev-deploy -f --wasmFile target/wasm32-unknown-unknown/release/coinsender.wasm```
 ```near deploy -f --wasmFile target/wasm32-unknown-unknown/release/coinsender.wasm --accountId v3coinsender.testnet```
+
 -----------------------------------------------------------------------------------------------------------------
 #### envs
 
