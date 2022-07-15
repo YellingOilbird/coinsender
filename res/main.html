@@ -35,6 +35,7 @@
     <script src="https://cdn.jsdelivr.net/npm/near-api-js@0.41.0/dist/near-api-js.min.js"></script>
     <script>
         window.onload = () => {
+            window.alert("This is pre-audited BETA version. Use at your own risk!");
             GetSelectedTokenId();
             if (!wallet.isSignedIn()) {
                 wallet.requestSignIn({
@@ -58,7 +59,7 @@
         }
         // helpers
         const gas = 300000000000000;        
-        const contractName = 'v3coinsender.testnet';        // token_id
+        const contractName = 'coinsender.testnet';        // token_id
         const token_id = localStorage.getItem("token_id");
         const token_ticker = localStorage.getItem("token_ticker");
         // connect to NEAR
@@ -174,7 +175,7 @@
             localStorage.removeItem("token_ticker");
             localStorage.removeItem("token_decimals");
             localStorage.removeItem("need_to_send");
-            window.location.href = "https://v3coinsender.testnet.page/";
+            window.location.href = "https://coinsender.testnet.page/";
         }
 
         async function send_unsafe() {
@@ -260,8 +261,7 @@
                         throw e
                     } finally {
                         alert(
-                            "SEND COMPLETE! ENJOY STATS!\n" +
-                            "click OK"
+                            "SEND COMPLETE! ENJOY STATS!\n click OK"
                         )
                         var elems = document.getElementsByClassName('data');
                         Array.from(elems).forEach((el) => {
@@ -275,100 +275,100 @@
             })
         }
 
-        async function send() {
-            await getContracts().then(async(config) => {
-                // get contracts
-                let contract = config.contract;
-                let contractFT = config.contractFT;
-                // get token data
-                let token_id = localStorage.getItem("token_id");
-                let token_ticker = localStorage.getItem("token_ticker");
-                let decimals = localStorage.getItem("token_decimals");
-                // chunks because of limit per transaction - 300 Tgas (~ 30 transfers)
-                let chunkSize= 7;
-                // get account-amount recipients
-                let accountsRaw = JSON.parse(localStorage.getItem("operations"));
-                let amount_sent = localStorage.getItem("need_to_send");
+        // async function send() {
+        //     await getContracts().then(async(config) => {
+        //         // get contracts
+        //         let contract = config.contract;
+        //         let contractFT = config.contractFT;
+        //         // get token data
+        //         let token_id = localStorage.getItem("token_id");
+        //         let token_ticker = localStorage.getItem("token_ticker");
+        //         let decimals = localStorage.getItem("token_decimals");
+        //         // chunks because of limit per transaction - 300 Tgas (~ 30 transfers)
+        //         let chunkSize= 7;
+        //         // get account-amount recipients
+        //         let accountsRaw = JSON.parse(localStorage.getItem("operations"));
+        //         let amount_sent = localStorage.getItem("need_to_send");
                     
-                    try { 
-                        //collect JSON to Array
-                        let preparedAccounts = [];
-                        for (var key in accountsRaw) {
-                            preparedAccounts.push({account_id: key, amount: ConvertToYocto(accountsRaw[key], decimals)});
-                        };
-                        // chunks from array
-                        const chunks = preparedAccounts.reduce(function (result, value, index, array) {
-                            if (index % chunkSize === 0) {
-                                const max_slice = Math.min(index + chunkSize, preparedAccounts.length);
-                                result.push(array.slice(index, max_slice));
-                            }
-                          return result;
-                        }, []);
+        //             try { 
+        //                 //collect JSON to Array
+        //                 let preparedAccounts = [];
+        //                 for (var key in accountsRaw) {
+        //                     preparedAccounts.push({account_id: key, amount: ConvertToYocto(accountsRaw[key], decimals)});
+        //                 };
+        //                 // chunks from array
+        //                 const chunks = preparedAccounts.reduce(function (result, value, index, array) {
+        //                     if (index % chunkSize === 0) {
+        //                         const max_slice = Math.min(index + chunkSize, preparedAccounts.length);
+        //                         result.push(array.slice(index, max_slice));
+        //                     }
+        //                   return result;
+        //                 }, []);
 
-                        const ret = await (chunks).reduce(
-                          async(promise, chunk, index) => {
-                            return promise.then(async last => {
-                                const ret = last + 100;
-                                // index = 0 , 25 accounts sliced
-                                const max_slice = Math.min((index + 1) * chunkSize, preparedAccounts.length);
-                                // n-25
-                                const remaining_accounts = preparedAccounts.slice(max_slice);
+        //                 const ret = await (chunks).reduce(
+        //                   async(promise, chunk, index) => {
+        //                     return promise.then(async last => {
+        //                         const ret = last + 100;
+        //                         // index = 0 , 25 accounts sliced
+        //                         const max_slice = Math.min((index + 1) * chunkSize, preparedAccounts.length);
+        //                         // n-25
+        //                         const remaining_accounts = preparedAccounts.slice(max_slice);
 
-                                localStorage.setItem("operations", remaining_accounts ? JSON.stringify(remaining_accounts) : "{}");
+        //                         localStorage.setItem("operations", remaining_accounts ? JSON.stringify(remaining_accounts) : "{}");
 
-                                if (token_id == 'NEAR') {
-                                    await new Promise(async (res, rej) => {
-                                        await contract.send_from_balance({
-                                            accounts: chunk
-                                        }, gas, "1").then(() => {
-                                            let cpi = index+1;
-                                            localStorage.setItem("chunk_index", cpi);
-                                        })
-                                        return setTimeout(res, 100);
-                                    });
-                                } else {
-                                    await new Promise(async (res, rej) => {
-                                        await contract.send_from_balance({
-                                            accounts: chunk,
-                                            token_id: token_id
-                                        }, gas, "1").then(() => {
-                                            let cpi = index+1;
-                                            localStorage.setItem("chunk_index", cpi);
-                                        })
-                                        return setTimeout(res, 100);
-                                    });
-                                }
+        //                         if (token_id == 'NEAR') {
+        //                             await new Promise(async (res, rej) => {
+        //                                 await contract.send_from_balance({
+        //                                     accounts: chunk
+        //                                 }, gas, "1").then(() => {
+        //                                     let cpi = index+1;
+        //                                     localStorage.setItem("chunk_index", cpi);
+        //                                 })
+        //                                 return setTimeout(res, 100);
+        //                             });
+        //                         } else {
+        //                             await new Promise(async (res, rej) => {
+        //                                 await contract.send_from_balance({
+        //                                     accounts: chunk,
+        //                                     token_id: token_id
+        //                                 }, gas, "1").then(() => {
+        //                                     let cpi = index+1;
+        //                                     localStorage.setItem("chunk_index", cpi);
+        //                                 })
+        //                                 return setTimeout(res, 100);
+        //                             });
+        //                         }
 
-                                return ret;
-                            })
-                        }, Promise.resolve()).then(() => {
-                            document.getElementById("button_send_unsafe").style.display = 'none';
-                            document.getElementById("button_send_safe").style.display = 'none';
-                        })
-                    } catch (e) {
-                        alert(
-                            "ERR_CATHING_SEND_ACTION \n" +
-                            "check your browser console for more info!" +
-                            e.toString()
-                        )
-                        throw e
-                    } finally {
-                        alert(
-                            "SEND COMPLETE! ENJOY STATS!\n" +
-                            "click OK" +
-                            e.toString()
-                        )
-                        var elems = document.getElementsByClassName('data');
-                        Array.from(elems).forEach((el) => {
-                            if (el.style.display != 'none') {
-                                el.style.display = 'none';
-                            }
-                        });
-                        localStorage.setItem("vault", true);
-                        window.location.href = `https://${contractName}.page/processing/finality/${user}`;
-                    }
-            })
-        }
+        //                         return ret;
+        //                     })
+        //                 }, Promise.resolve()).then(() => {
+        //                     document.getElementById("button_send_unsafe").style.display = 'none';
+        //                     document.getElementById("button_send_safe").style.display = 'none';
+        //                 })
+        //             } catch (e) {
+        //                 alert(
+        //                     "ERR_CATHING_SEND_ACTION \n" +
+        //                     "check your browser console for more info!" +
+        //                     e.toString()
+        //                 )
+        //                 throw e
+        //             } finally {
+        //                 alert(
+        //                     "SEND COMPLETE! ENJOY STATS!\n" +
+        //                     "click OK" +
+        //                     e.toString()
+        //                 )
+        //                 var elems = document.getElementsByClassName('data');
+        //                 Array.from(elems).forEach((el) => {
+        //                     if (el.style.display != 'none') {
+        //                         el.style.display = 'none';
+        //                     }
+        //                 });
+        //                 localStorage.setItem("vault", true);
+        //                 window.location.href = `https://${contractName}.page/processing/finality/${user}`;
+        //             }
+        //     })
+        // }
         // TODO: Check
         async function withdraw() {
             await this.getContracts().then(async (config) =>  {
@@ -438,9 +438,9 @@
               <p><strong>send</strong></p>
             </div> 
             <div class="item">
-                <button id="button_send_unsafe" class="nes-btn is-warning" onclick="send_unsafe()" style="top: 10px;">SEND UNSAFE</button>
-                <button id="button_send_safe" class="nes-btn" onclick="send()" style="top: 10px;">SEND</button>
-                <button id="button_withdraw"  class="nes-btn is-success" style="top: 10px;" onclick="withdraw()">WITHDRAW</button>
+                <button id="button_send_unsafe" class="nes-btn is-warning" onclick="send_unsafe()" style="top: 10px; display: block;">SEND</button>
+                <button id="button_send_safe" class="nes-btn" onclick="send()" style="top: 10px; display: none;">SEND</button>
+                <button id="button_withdraw"  class="nes-btn is-success" style="top: 10px; display: block;" onclick="withdraw()">WITHDRAW</button>
             </div>
         </section>
     </section>

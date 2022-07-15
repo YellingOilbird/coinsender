@@ -36,7 +36,7 @@ But I'm on the way to finish web and go to upgrade user vault functions and intr
 
 ```bash
 near dev-deploy -f --wasmFile target/wasm32-unknown-unknown/release/coinsender.wasm
-near deploy -f --wasmFile target/wasm32-unknown-unknown/release/coinsender.wasm --accountId $CONTRACT_ID
+near deploy -f --wasmFile target/wasm32-unknown-unknown/release/coinsender.wasm --accountId coinsender.testnet
 ```
 ----------------------------------------------------------------------------------------------------------------
 #### envs

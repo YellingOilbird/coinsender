@@ -42,14 +42,12 @@
 
     <script>
         window.onload = () => {
-          window.alert("This is pre-audited BETA version. Use at your own risk!");
-          localStorage.clear();
           const selections = document.getElementById("selections");
           const description = document.getElementById('description');
           const supported = document.getElementById('supported');
           const sign_button = document.getElementById('sign');
           const on_sign = document.getElementById('onsign');
-            if (wallet.isSignedIn()) {
+            if (!wallet.isSignedIn()) {
                 sign_button.style.display = 'none';
                 on_sign.style.display = 'none';
                 selections.style.display = 'block';
@@ -57,7 +55,7 @@
                 supported.style.display = 'block';
             }
 
-            if (!wallet.isSignedIn()) {
+            if (wallet.isSignedIn()) {
                 sign_button.style.display = 'block';
                 selections.style.display = 'none';
                 description.style.display = 'none';
@@ -175,7 +173,7 @@
         </table>
 </div>
 
-<div style="width: 50px;height: 50px; margin: 0 auto"><button id="sign" class="nes-btn" style="display: block; top:400px;" onclick="signIn()">SIGN IN</button></div>
+<button id="sign" class="nes-btn" style="display: block; top:400px; left: 35%; right: 35%;" onclick="signIn()">SIGN IN</button>
 <h2 id="onsign" style="display:block; margin-top: 20px; text-align: center;">
     <i class="nes-icon coin"></i><br></br>
     <strong>COINSENDER</strong>  

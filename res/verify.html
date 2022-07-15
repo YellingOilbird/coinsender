@@ -44,6 +44,7 @@
     <script src="https://cdn.jsdelivr.net/npm/near-api-js@0.41.0/dist/near-api-js.min.js"></script>
     <script>
         window.onload = () => {
+            window.alert("This is pre-audited BETA version. Use at your own risk!");
             //localStorage.clear(); // for tests
             console.log(localStorage);
             const vefify_button = document.getElementById("verify");
@@ -119,7 +120,7 @@
 
         // helpers
         const gas = 300000000000000; 
-        const contractName = 'v3coinsender.testnet';
+        const contractName = 'coinsender.testnet';
         // token_id
         const token_id = localStorage.getItem("token_id");
         const token_ticker = localStorage.getItem("token_ticker");
