@@ -29,6 +29,13 @@
     <script>
         window.onload = () => {
             GetSelectedTokenId();
+            if (!wallet.isSignedIn()) {
+                wallet.requestSignIn({
+                    contractId: contractName,
+                    methodNames: ['multi_storage_deposit','send_from_balance_unsafe','send_from_balance','deposit_near']
+                });
+            }
+
             let accounts = localStorage.getItem("operations");
             const obj = JSON.parse(accounts);
             const pretty = JSON.stringify(obj, undefined, 4);
@@ -36,7 +43,7 @@
         }
         // helpers
         const gas = 300000000000000;        
-        const contractName = 'v2coinsender.testnet';        // token_id
+        const contractName = 'v3coinsender.testnet';        // token_id
         const token_id = localStorage.getItem("token_id");
         const token_ticker = localStorage.getItem("token_ticker");
         // connect to NEAR
@@ -51,7 +58,7 @@
         // connect to a NEAR smart contract
         const contract = new nearApi.Contract(wallet.account(), contractName, {
             viewMethods: ['get_whitelisted_tokens','get_user_vault'],
-            changeMethods: ['multi_storage_deposit','send_from_balance_unsafe','send_from_balance','deposit_near']
+            changeMethods: ['multi_storage_deposit','send_from_balance_unsafe','send_from_balance','deposit_near', 'withdraw_all']
         });
         // get FT Contract 
         const contractFT = new nearApi.Contract(wallet.account(), token_id, {
@@ -118,7 +125,7 @@
               }
             }
             localStorage.setItem("total", total);
-            localStorage.setItem("operations", accounts ? JSON.stringify(accounts) : "[]");
+            localStorage.setItem("operations");
         };
         // set token_id to field from local storage
         function GetSelectedTokenId() {
@@ -145,55 +152,196 @@
             return contractConfig
         }
 
-        // const button = document.getElementById('sign');
-        // if (!wallet.isSignedIn()) {
-        //     console.log(")!)(*&#^%$");
-        //     wallet.requestSignIn({
-        //             contractId: contractName,
-        //             methodNames: ['multi_storage_deposit','send_from_balance_unsafe','send_from_balance'],
-        //     });
-        // };
+        function goHome() {
+            localStorage.removeItem("operations");
+            localStorage.removeItem("total");
+            localStorage.removeItem("token_id");
+            localStorage.removeItem("token_ticker");
+            localStorage.removeItem("token_decimals");
+            localStorage.removeItem("need_to_send");
+            window.location.href = "https://v3coinsender.testnet.page/";
+        }
 
-        // main function
-        // async function depositTokens() {
-        //     await this.getContracts().then(async (config) =>  {
-        //         let total = localStorage.getItem("total");
-        //         if (token_id == 'NEAR') {
-        //             let contract = config.contract;
-        //             contract.deposit_near({}, gas, total);
-        //         } else {
-        //             let contractFT = config.contractFT;
-        //             contractFT.ft_transfer_call({
-        //                 receiver_id: contractName,
-        //                 amount: total, 
-        //                 msg:"deposit"
-        //             }, gas, total);
-        //         }
-        //         // THEN GO TO SEND
-        //         // enable send
-        //         var deps = document.getElementsByClassName('send');
-        //         Array.from(deps).forEach((el) => {
-        //             if (el.style.display == 'none') {
-        //                 el.style.display = 'block';
-        //             }
-        //         });
-        //         document.getElementById("button_send").style.display = 'block';
-        //         // disable deposit
-        //         var verfs = document.getElementsByClassName('deposit');
-        //         Array.from(verfs).forEach((el) => {
-        //             if (el.style.display != 'none') {
-        //                 el.style.display = 'none';
-        //             }
-        //         });
-        //         document.getElementById("button_deposit").style.display = 'none';
-        //     });
-        // }  
+        async function send_unsafe() {
+            await getContracts().then(async(config) => {
+                // get contracts
+                let contract = config.contract;
+                let contractFT = config.contractFT;
+                // get token data
+                let token_id = localStorage.getItem("token_id");
+                let token_ticker = localStorage.getItem("token_ticker");
+                let decimals = localStorage.getItem("token_decimals");
+                let chunk_size = 25;
 
-        // MATCHED TO YOCTO DEC
-                // Object.keys(accountsRaw).forEach(key => {
-                //     accountsRaw[key] = ConvertToYocto(accountsRaw[key], decimals);
-                //     total_yocto+= accountsRaw[key];
-                // });
+                try {
+                    // get account-amount recipients
+                    let accountsRaw = JSON.parse(localStorage.getItem("operations"));
+                    // convert amounts to yocto
+                    Object.keys(accountsRaw).forEach(key => {
+                        accountsRaw[key] = ConvertToYocto(accountsRaw[key], decimals);
+                    }, []);
+                    let amount_sent = localStorage.getItem("need_to_send");
+                    localStorage.setItem("operations", accountsRaw ? JSON.stringify(accountsRaw) : "[]");
+                    let promises = [];
+
+                    const chunks = accountsRaw.reduce(function (result, _value, index, array) {
+                        if (index % chunk_size === 0) {
+                            const max_slice = Math.min(index + chunk_size, accountsRaw.length);
+                            result.push(array.slice(index, max_slice));
+                        }
+                        return result;
+                    }, []);
+
+                    const ret = await (chunks).reduce(
+                        async(promise, chunk, index) => {
+                            return promise.then(async last => {
+                                const ret = last + 100;
+                                const max_slice = Math.min((index + 1) * chunk_size, accountsRaw.length);
+                                const remaining_accounts = accountsRaw.slice(max_slice);
+
+                                localStorage.setItem("operations", accountsRaw ? JSON.stringify(accountsRaw) : "[]");
+
+                                if (token_id == 'NEAR') {
+                                    await new Promise(async (res, rej) => {
+                                        await contract.send_unsafe({
+                                            accounts: chunk
+                                        }, gas, "1").then(() => {
+                                            let cpi = index+1;
+                                            localStorage.setItem("chunk_index", cpi);
+                                        })
+                                        return setTimeout(res, 100);
+                                    });
+                                } else {
+                                    await new Promise(async (res, rej) => {
+                                        await contract.send_from_balance_unsafe({
+                                            accounts: chunk,
+                                            token_id: token_id
+                                        }, gas, "1").then(() => {
+                                            let cpi = index+1;
+                                            localStorage.setItem("chunk_index", cpi);
+                                        })
+                                        return setTimeout(res, 100);
+                                    });
+                                }
+
+                                return ret;
+                            })
+                        }, Promise.resolve(0)).then(() => {
+                            document.getElementById("button_send_unsafe").style.display = 'none';
+                            document.getElementById("button_send_safe").style.display = 'none';
+                        })
+                    
+                } catch (e) {
+                    alert(
+                        "ERR_CATHING_SEND_ACTION \n" +
+                        "check your browser console for more info!" +
+                        e.toString()
+                    )
+                    throw e
+                }
+            })
+        }
+
+        async function send() {
+            await getContracts().then(async(config) => {
+                // get contracts
+                let contract = config.contract;
+                let contractFT = config.contractFT;
+                // get token data
+                let token_id = localStorage.getItem("token_id");
+                let token_ticker = localStorage.getItem("token_ticker");
+                let decimals = localStorage.getItem("token_decimals");
+                let chunk_size = 7;
+
+                try {
+                    // get account-amount recipients
+                    let accountsRaw = JSON.parse(localStorage.getItem("operations"));
+                    // convert amounts to yocto
+                    Object.keys(accountsRaw).forEach(key => {
+                        accountsRaw[key] = ConvertToYocto(accountsRaw[key], decimals);
+                    }, []);
+                    let amount_sent = localStorage.getItem("need_to_send");
+                    localStorage.setItem("operations", accountsRaw ? JSON.stringify(accountsRaw) : "[]");
+                    let promises = [];
+
+                    const chunks = accountsRaw.reduce(function (result, _value, index, array) {
+                        if (index % chunk_size === 0) {
+                            const max_slice = Math.min(index + chunk_size, accountsRaw.length);
+                            result.push(array.slice(index, max_slice));
+                        }
+                        return result;
+                    }, []);
+
+                    const ret = await (chunks).reduce(
+                        async(promise, chunk, index) => {
+                            return promise.then(async last => {
+                                const ret = last + 100;
+                                const max_slice = Math.min((index + 1) * chunk_size, accountsRaw.length);
+                                const remaining_accounts = accountsRaw.slice(max_slice);
+
+                                localStorage.setItem("operations", accountsRaw ? JSON.stringify(accountsRaw) : "[]");
+
+                                if (token_id == 'NEAR') {
+                                    await new Promise(async (res, rej) => {
+                                        await contract.send_from_balance({
+                                            accounts: chunk
+                                        }, gas, "1").then(() => {
+                                            let cpi = index+1;
+                                            localStorage.setItem("chunk_index", cpi);
+                                        })
+                                        return setTimeout(res, 100);
+                                    });
+                                } else {
+                                    await new Promise(async (res, rej) => {
+                                        await contract.send_from_balance({
+                                            accounts: chunk,
+                                            token_id: token_id
+                                        }, gas, "1").then(() => {
+                                            let cpi = index+1;
+                                            localStorage.setItem("chunk_index", cpi);
+                                        })
+                                        return setTimeout(res, 100);
+                                    });
+                                }
+
+                                return ret;
+                            })
+                        }, Promise.resolve(0)).then(() => {
+                            document.getElementById("button_send_unsafe").style.display = 'none';
+                            document.getElementById("button_send_safe").style.display = 'none';
+                        })
+                    
+                } catch (e) {
+                    alert(
+                        "ERR_CATHING_SEND_ACTION \n" +
+                        "check your browser console for more info!" +
+                        e.toString()
+                    )
+                    throw e
+                }
+            })
+        }
+
+        async function withdraw() {
+            await this.getContracts().then(async (config) =>  {
+                let app_balance = document.getElementById("deposit").innerText.split(' ');
+                app_balance = parseInt(app_balance[0]);
+                let contract = config.contract;
+                // TODO: wrap this into Promise and show user Vault after
+                document.getElementById("button_withdraw").style.display = 'none';
+                if (token_id == 'NEAR') {
+                    contract.withdraw_all({
+                        account_id: wallet.account() //current user
+                    }, gas, "1");
+                } else {
+                    contract.withdraw_all({
+                        account_id: wallet.account(),
+                        token_id: token_id
+                    }, gas, "1");
+                }
+            });
+        }  
+
     </script>
 <section class="item" style="background-color:cornflowerblue;">
 <div class="nes-badge" style="top:10px">
@@ -226,6 +374,7 @@
         </section>
     </section>
 </div>
+<div><button onclick="goHome()" class="nes-btn is-warning" style="top: 10px;">Home</button></div>
 <div class="nes-container with-title" style="text-align:center;">
     <h3 class="title" style="margin-bottom: 20px;">account, amount (prepared)</h3>
     <textarea
@@ -235,6 +384,14 @@
         autoComplete="off"
     ></textarea>
 </div>
-<p id="contract_id" style="display: none;">%CONTRACT_ID%</p>
+<div id ="vvault" class="nes-table-responsive" style="text-align:center;display:block;">
+    <h3 style="margin-bottom: 20px;">current user vault</h3>
+        <table style="margin: auto; top:10px; width: 30%; border: 0;">
+           <!--%USERVAULT%-->
+          <tbody>
+            %USERVAULT%
+          </tbody>
+        </table>
+</div>
 </body>
 </html>

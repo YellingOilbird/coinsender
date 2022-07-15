@@ -83,8 +83,8 @@ impl Contract {
         // "/processing/verify/NEAR/user.testnet"
         // index.html => verify.html
         if path.starts_with("/processing/verify/NEAR/") {
-            let user = AccountId::from_str(&path[24..]).expect("ERR_INVALID_ACCOUNT_ID");
-            let user_balance = self.get_deposit_by_token(user, None).0;
+            let user_id = AccountId::from_str(&path[24..]).expect("ERR_INVALID_ACCOUNT_ID");
+            let user_balance = self.get_deposit_by_token(user_id, None).0;
             let decimals = 24;
             let mut user_balance_formatted = yocto_ft(user_balance, decimals).to_string();
             user_balance_formatted = format!("{} NEAR", 
@@ -100,18 +100,21 @@ impl Contract {
         // "/processing/send/NEAR/user.testnet"
         // verify.html => main.html (for send)
         if path.starts_with("/processing/send/NEAR/") {
-            let user = AccountId::from_str(&path[22..]).expect("ERR_INVALID_ACCOUNT_ID");
-            let user_balance = self.get_deposit_by_token(user, None).0;
+            let user_id = AccountId::from_str(&path[22..]).expect("ERR_INVALID_ACCOUNT_ID");
+            let user_balance = self.get_deposit_by_token(user_id.clone(), None).0;
             let decimals = 24;
             let mut user_balance_formatted = yocto_ft(user_balance, decimals).to_string();
             user_balance_formatted = format!("{} NEAR", 
                 &user_balance_formatted,
             );
 
+            let vvault_html = self.get_user_vault_html(user_id.clone());
+
             return Web4Response::html_response(
             include_str!("../res/main.html")
                 .replace("%CONTRACT_ID%", &env::current_account_id().to_string())
                 .replace("%BALANCE%", &user_balance_formatted)
+                .replace("%USERVAULT%", &vvault_html)
             )
         }
 
@@ -121,8 +124,8 @@ impl Contract {
         if path.starts_with("/processing/verify/ft/") {
             let parsed_accounts: AccountBalance = parse_user_and_token_ids(path, Web4Pages::Verify);
             let token: AccountId = parsed_accounts.token_id;
-            let user: AccountId = parsed_accounts.user;
-            let user_balance = self.get_deposit_by_token(user, Some(token.clone())).0;
+            let user_id: AccountId = parsed_accounts.user;
+            let user_balance = self.get_deposit_by_token(user_id, Some(token.clone())).0;
             let ticker = self.get_token_ticker(token.clone());
             let decimals = self.get_token_decimals(token);
             let mut user_balance_formatted = yocto_ft(user_balance, decimals).to_string();
@@ -143,8 +146,8 @@ impl Contract {
         if path.starts_with("/processing/send/ft/") {
             let parsed_accounts: AccountBalance = parse_user_and_token_ids(path, Web4Pages::Send);
             let token:AccountId = parsed_accounts.token_id;
-            let user:AccountId = parsed_accounts.user;
-            let user_balance = self.get_deposit_by_token(user, Some(token.clone())).0;
+            let user_id:AccountId = parsed_accounts.user;
+            let user_balance = self.get_deposit_by_token(user_id.clone(), Some(token.clone())).0;
             let ticker = self.get_token_ticker(token.clone());
             let decimals = self.get_token_decimals(token);
             let mut user_balance_formatted = yocto_ft(user_balance, decimals).to_string();
@@ -153,10 +156,13 @@ impl Contract {
                 &ticker
             );
 
+            let vvault_html = self.get_user_vault_html(user_id.clone());
+
             return Web4Response::html_response(
             include_str!("../res/main.html")
                 .replace("%CONTRACT_ID%", &env::current_account_id().to_string())
                 .replace("%BALANCE%", &user_balance_formatted)
+                .replace("%USERVAULT%", &vvault_html)
             )
         }
 
@@ -190,5 +196,34 @@ impl Contract {
                 .replace("%TOKENS%", &app_html)
                 .replace("%TOKENOPTIONS%", &select_options)
         )
+    }
+
+    fn get_user_vault_html(&self, account_id: AccountId) -> String {
+        // User Vault
+        let mut vault_response = "".to_string();
+        let mut vault_token_balances_response = "".to_string();
+        let mut vault_used_tokens_response = "".to_string();
+        let vvault = self.get_user_vault(account_id);
+        for (account, balance) in &vvault.token_deposits {
+            vault_token_balances_response = format!("{}<tr><td>{}</td><td>{}</td></tr>", 
+                &vault_token_balances_response,
+                account.to_string(),
+                balance.to_string(),
+            );
+        }
+        for token in &vvault.tokens_used {
+            vault_used_tokens_response = format!("USED TOKENS<tr><td>{}</td><td>{}</td></tr>", 
+                &vault_used_tokens_response,
+                token,
+            );
+        }
+        vault_response = format!("{}<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>", 
+            &vault_response,
+            vvault.near_sends_num.to_string(),
+            vvault.total_near_amount_sent.to_string(),
+            &vault_used_tokens_response,
+            &vault_token_balances_response
+        );
+        vault_response
     }
 }
