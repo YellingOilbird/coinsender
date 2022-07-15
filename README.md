@@ -22,6 +22,11 @@
 - When token whitelisted by owner he actually comes to index page as pretty-view with icon and also as SELECT option
 
 
+#### Unimplemented (in-deploy)
+This is my first experience with front-end side and it goes little hard. But JS part is 70% done (still with several bugs on it).
+But I'm on the way to finish web and go to upgrade user vault functions and introduce rewards for most activity senders.  For example - top 10 senders by number of send and by summ in USN will be rewarded with free-month without fees / 100 sends without fees, etc.
+
+
 #### Build the contract
 
     `RUSTFLAGS='-C link-arg=-s' cargo build --target wasm32-unknown-unknown --release`
@@ -149,8 +154,3 @@ near call $CONTRACT_ID send_from_balance '{
 }' --accountId $USER_ACCOUNT --depositYocto 1 --gas $GAS
 
 ```
-
-near call p8_token.testnet storage_balance_of '{"account_id":"rncy.testnet"}' --accountId rmlsnk.testnet
-=======
-```
->>>>>>> Stashed changes
