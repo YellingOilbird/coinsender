@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Coinsender</title>
+
+    <meta name="og:title" content="Coinsender"/>
+    <meta name="og:description" content="Coinsender"/>
+    <link href="https://unpkg.com/nes.css@latest/css/nes.min.css" rel="stylesheet" />
+    <link href="https://nostalgic-css.github.io/NES.css/style.css" rel="stylesheet" />
+    <!--STYLES-->
+    <style>
+        
+        @font-face {
+            font-family: 'kongtext';
+            src: url('./assets/kongtext-webfont.woff2') format('woff2'),
+            url('/assets/kongtext-webfont.woff') format('woff');
+            font-weight: normal;
+            font-style: normal;
+        }
+        img {
+            width: 40px;
+            height: auto;
+        }
+
+        td {
+            text-align: left;
+            padding: 10px;
+        }
+
+        select {
+            font-family:system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+    </style>
+        <script src="https://cdn.jsdelivr.net/npm/near-api-js@0.41.0/dist/near-api-js.min.js"></script>
+
+    <script>
+        window.onload = () => {
+          const selections = document.getElementById("selections");
+          const description = document.getElementById('description');
+          const supported = document.getElementById('supported');
+          const sign_button = document.getElementById('sign');
+          const on_sign = document.getElementById('onsign');
+            if (!wallet.isSignedIn()) {
+                sign_button.style.display = 'none';
+                on_sign.style.display = 'none';
+                selections.style.display = 'block';
+                description.style.display = 'block';
+                supported.style.display = 'block';
+            }
+
+            if (wallet.isSignedIn()) {
+                sign_button.style.display = 'block';
+                selections.style.display = 'none';
+                description.style.display = 'none';
+                supported.style.display = 'none';
+            }
+        }
+        const gas = 300000000000000; 
+        const contractName = 'v3coinsender.testnet';
+        // connect to NEAR
+        const near = new nearApi.Near({
+          keyStore: new nearApi.keyStores.BrowserLocalStorageKeyStore(),
+          networkId: 'testnet',
+          nodeUrl: 'https://rpc.testnet.near.org',
+          walletUrl: 'https://wallet.testnet.near.org'
+        });
+        
+        // connect to the NEAR Wallet
+        const wallet = new nearApi.WalletConnection(near);
+
+        // get coinsender contract
+        const contract = new nearApi.Contract(wallet.account(), contractName, {
+            viewMethods: ['get_deposit_by_token','get_user_vault'],
+            changeMethods: ['send_from_balance','send_from_balance_unsafe','deposit_near','withdraw_all'] 
+        });
+
+        console.log("______\n");
+        console.log(near);
+        console.log(wallet);
+        console.log(contract);
+        console.log("______\n");
+
+        async function getContracts() {
+            const contractConfig = {
+                wallet: wallet,
+                networkId: near.networkId,
+                contract: contract,
+            }
+            return contractConfig
+        }
+        async function signIn() {
+            await getContracts().then(async (config) => {
+                let wallet = config.wallet;
+                wallet.requestSignIn({
+                    contractId: contractName,
+                    methodNames: ['get_deposit_by_token','multi_storage_deposit','send_from_balance_unsafe','send_from_balance','deposit_near']
+                });
+            });
+        }
+        function GetSelectedTokenId() {
+            // get token_id
+            var e = document.getElementById('token_select').value.split(':');
+            const current_token_id = e[0];
+            const current_token_decimals = e[1];
+            const current_token_ticker = e[2];
+            console.log(current_token_decimals, current_token_ticker, current_token_id);
+            // enable button
+            var x = document.getElementById('check');
+            if (x.style.display == 'none') {
+                x.style.display = 'block';
+            }
+            // set token_id
+            localStorage.setItem("token_id", current_token_id);
+            localStorage.setItem("token_ticker", current_token_ticker);
+            localStorage.setItem("token_decimals", current_token_decimals);
+        }
+        // "/processing/verify/ft/token.testnet/user.testnet"
+        // "/processing/verify/NEAR/user.testnet"
+        function getBalances() {
+            let token_id = localStorage.getItem("token_id");
+            let user = wallet.getAccountId();
+            if (token_id == 'NEAR') {
+                window.location.href = `https://${contractName}.page/processing/verify/NEAR/${user}`
+            } else {
+                window.location.href = `https://${contractName}.page/processing/verify/ft/${token_id}/${user}`
+            }
+        }
+    </script>
+</head>
+
+<body>
+<div id="selections" class="item" style="display:block;">
+<section class="nes-container" style="background-color:cornflowerblue">
+    <section class="nes-select">
+        <select id="token_select" onchange="GetSelectedTokenId()">
+          <option value="" disabled selected hidden>NEAR</option>
+          <option value='NEAR:24:NEAR'>NEAR</option>
+          %TOKENOPTIONS%
+        </select>
+    </section>
+</section>
+</div>
+<div id="description" class="data" style="display:block;">
+    <section class="topic">
+        <section id = "main", class="nes-container with-title is-centered", style="top: 10px;">
+            <h3 class="title", style="font-size: 32px; animation: blink 3s ease-in-out; margin-top: 10px"><i class="nes-icon coin"></i> coinsender <img src="./assets/logo-black.svg"/></h3>
+
+            <p><strong>Coinsender</strong> 
+                allows send tokens to many accounts using one
+                single transaction
+            </p>
+            <div class="item">
+                <a id="check" class="nes-btn" onclick="getBalances()" style="top: 10px; display:none;">CHECK & VERIFY RECEPIENTS</a></td>
+            </div>
+        </section>
+    </section>
+</div>
+<div id ="supported" class="nes-table-responsive" style="text-align:center;display:block;">
+    <h3 style="margin-bottom: 20px;">supported tokens</h3>
+        <table style="margin: auto; top:10px; width: 30%; border: 0;">
+           <!--%TOKENS%-->
+          <tbody>
+            <tr><td><img src="./assets/logo-black.svg"/></td><td> NEAR</td></tr>
+            %TOKENS%
+          </tbody>
+        </table>
+</div>
+
+<button id="sign" class="nes-btn" style="display: block; top:400px; left: 35%; right: 35%;" onclick="signIn()">SIGN IN</button>
+<h2 id="onsign" style="display:block; margin-top: 20px; text-align: center;">
+    <i class="nes-icon coin"></i><br></br>
+    <strong>COINSENDER</strong>  
+    <br></br>
+    <br></br>
+    <p style="font-size:18px;">Sign with NEAR to continue -></p>
+</h2>
+<p id="contract_id" style="display: none;">%CONTRACT_ID%</p>
+</body>
+</html>
