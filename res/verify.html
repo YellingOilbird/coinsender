@@ -431,7 +431,7 @@
                 if (Number(app_balance) < Number(total)) {
                     if (app_balance !== 0) {
                         let app_balance_converted = ConvertToYocto(app_balance, decimals).toString();
-                        let need_to_deposit = bigInt(amount).minus(bigInt(app_balance_converted));
+                        need_to_deposit = bigInt(amount).minus(bigInt(app_balance_converted));
                     }
                     let need_to_deposit_int = Math.round(bigInt(need_to_deposit).divide(bigInt(Math.pow(10, decimals))));
                     console.log("need_to_deposit_int", need_to_deposit_int);

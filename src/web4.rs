@@ -207,7 +207,7 @@ impl Contract {
         for (account, balance) in &vvault.token_deposits {
             vault_token_balances_response = format!("{}<tr><td>{}</td><td>{}</td></tr>", 
                 &vault_token_balances_response,
-                account.to_string(),
+                self.get_token_ticker(account.clone()),
                 balance.to_string(),
             );
         }
@@ -217,7 +217,8 @@ impl Contract {
                 token,
             );
         }
-        vault_response = format!("{}<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>", 
+        //<tr><td>{}</td><td>{}</td><td>{}</td><td></td><td>{}</td></tr></td></tr>
+        vault_response = format!("{}<tr><td>{}</td><td>{}</td><td>{}</td><td></td><td>{}</td></tr></td></tr>", 
             &vault_response,
             vvault.near_sends_num.to_string(),
             vvault.total_near_amount_sent.to_string(),

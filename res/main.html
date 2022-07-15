@@ -23,6 +23,13 @@
             font-weight: normal;
             font-style: normal;
         }
+        td {
+            text-align: center;
+            min-width: 80px
+        }
+        th {
+            text-align: center;
+        }
 
     </style>
     <script src="https://cdn.jsdelivr.net/npm/near-api-js@0.41.0/dist/near-api-js.min.js"></script>
@@ -171,39 +178,41 @@
                 let token_id = localStorage.getItem("token_id");
                 let token_ticker = localStorage.getItem("token_ticker");
                 let decimals = localStorage.getItem("token_decimals");
-                let chunk_size = 25;
+                // chunks because of limit per transaction - 300 Tgas (~ 30 transfers)
+                let chunkSize = 25;
+                // get account-amount recipients
+                let accountsRaw = JSON.parse(localStorage.getItem("operations"));
+                let amount_sent = localStorage.getItem("need_to_send");
+                    
+                    try { 
+                        //collect JSON to Array
+                        let preparedAccounts = [];
+                        for (var key in accountsRaw) {
+                            preparedAccounts.push({account_id: key, amount: ConvertToYocto(accountsRaw[key], decimals)});
+                        };
+                        // save prepared for send accounts
+                        localStorage.setItem("prepared_operations", preparedAccounts ? JSON.stringify(preparedAccounts) : "[]");
+                        // chunks from array
+                        const chunks = preparedAccounts.reduce(function (result, value, index, array) {
+                            if (index % chunkSize === 0) {
+                                const max_slice = Math.min(index + chunkSize, preparedAccounts.length);
+                                result.push(array.slice(index, max_slice));
+                            }
+                          return result;
+                        }, []);
 
-                try {
-                    // get account-amount recipients
-                    let accountsRaw = JSON.parse(localStorage.getItem("operations"));
-                    // convert amounts to yocto
-                    Object.keys(accountsRaw).forEach(key => {
-                        accountsRaw[key] = ConvertToYocto(accountsRaw[key], decimals);
-                    }, []);
-                    let amount_sent = localStorage.getItem("need_to_send");
-                    localStorage.setItem("operations", accountsRaw ? JSON.stringify(accountsRaw) : "[]");
-                    let promises = [];
-
-                    const chunks = accountsRaw.reduce(function (result, _value, index, array) {
-                        if (index % chunk_size === 0) {
-                            const max_slice = Math.min(index + chunk_size, accountsRaw.length);
-                            result.push(array.slice(index, max_slice));
-                        }
-                        return result;
-                    }, []);
-
-                    const ret = await (chunks).reduce(
-                        async(promise, chunk, index) => {
+                        const ret = await (chunks).reduce(
+                          async(promise, chunk, index) => {
                             return promise.then(async last => {
                                 const ret = last + 100;
-                                const max_slice = Math.min((index + 1) * chunk_size, accountsRaw.length);
-                                const remaining_accounts = accountsRaw.slice(max_slice);
+                                const max_slice = Math.min((index + 1) * chunkSize, preparedAccounts.length);
+                                const remaining_accounts = preparedAccounts.slice(max_slice);
 
-                                localStorage.setItem("operations", accountsRaw ? JSON.stringify(accountsRaw) : "[]");
+                                localStorage.setItem("remaining_operations", remaining_accounts ? JSON.stringify(remaining_accounts) : "[]");
 
                                 if (token_id == 'NEAR') {
                                     await new Promise(async (res, rej) => {
-                                        await contract.send_unsafe({
+                                        await contract.send_from_balance_unsafe({
                                             accounts: chunk
                                         }, gas, "1").then(() => {
                                             let cpi = index+1;
@@ -231,14 +240,14 @@
                             document.getElementById("button_send_safe").style.display = 'none';
                         })
                     
-                } catch (e) {
-                    alert(
+                    } catch (e) {
+                        alert(
                         "ERR_CATHING_SEND_ACTION \n" +
                         "check your browser console for more info!" +
                         e.toString()
                     )
-                    throw e
-                }
+                        throw e
+                    }
             })
         }
 
@@ -251,35 +260,37 @@
                 let token_id = localStorage.getItem("token_id");
                 let token_ticker = localStorage.getItem("token_ticker");
                 let decimals = localStorage.getItem("token_decimals");
-                let chunk_size = 7;
+                // chunks because of limit per transaction - 300 Tgas (~ 30 transfers)
+                let chunkSize= 7;
+                // get account-amount recipients
+                let accountsRaw = JSON.parse(localStorage.getItem("operations"));
+                let amount_sent = localStorage.getItem("need_to_send");
+                    
+                    try { 
+                        //collect JSON to Array
+                        let preparedAccounts = [];
+                        for (var key in accountsRaw) {
+                            preparedAccounts.push({account_id: key, amount: ConvertToYocto(accountsRaw[key], decimals)});
+                        };
+                        // save prepared for send accounts
+                        localStorage.setItem("prepared_operations", preparedAccounts ? JSON.stringify(preparedAccounts) : "[]");
+                        // chunks from array
+                        const chunks = preparedAccounts.reduce(function (result, value, index, array) {
+                            if (index % chunkSize === 0) {
+                                const max_slice = Math.min(index + chunkSize, preparedAccounts.length);
+                                result.push(array.slice(index, max_slice));
+                            }
+                          return result;
+                        }, []);
 
-                try {
-                    // get account-amount recipients
-                    let accountsRaw = JSON.parse(localStorage.getItem("operations"));
-                    // convert amounts to yocto
-                    Object.keys(accountsRaw).forEach(key => {
-                        accountsRaw[key] = ConvertToYocto(accountsRaw[key], decimals);
-                    }, []);
-                    let amount_sent = localStorage.getItem("need_to_send");
-                    localStorage.setItem("operations", accountsRaw ? JSON.stringify(accountsRaw) : "[]");
-                    let promises = [];
-
-                    const chunks = accountsRaw.reduce(function (result, _value, index, array) {
-                        if (index % chunk_size === 0) {
-                            const max_slice = Math.min(index + chunk_size, accountsRaw.length);
-                            result.push(array.slice(index, max_slice));
-                        }
-                        return result;
-                    }, []);
-
-                    const ret = await (chunks).reduce(
-                        async(promise, chunk, index) => {
+                        const ret = await (chunks).reduce(
+                          async(promise, chunk, index) => {
                             return promise.then(async last => {
                                 const ret = last + 100;
-                                const max_slice = Math.min((index + 1) * chunk_size, accountsRaw.length);
-                                const remaining_accounts = accountsRaw.slice(max_slice);
+                                const max_slice = Math.min((index + 1) * chunkSize, preparedAccounts.length);
+                                const remaining_accounts = preparedAccounts.slice(max_slice);
 
-                                localStorage.setItem("operations", accountsRaw ? JSON.stringify(accountsRaw) : "[]");
+                                localStorage.setItem("remaining_operations", remaining_accounts ? JSON.stringify(remaining_accounts) : "[]");
 
                                 if (token_id == 'NEAR') {
                                     await new Promise(async (res, rej) => {
@@ -311,33 +322,45 @@
                             document.getElementById("button_send_safe").style.display = 'none';
                         })
                     
-                } catch (e) {
-                    alert(
+                    } catch (e) {
+                        alert(
                         "ERR_CATHING_SEND_ACTION \n" +
                         "check your browser console for more info!" +
                         e.toString()
                     )
-                    throw e
-                }
+                        throw e
+                    }
             })
         }
-
+        // TODO: Check
         async function withdraw() {
             await this.getContracts().then(async (config) =>  {
                 let app_balance = document.getElementById("deposit").innerText.split(' ');
                 app_balance = parseInt(app_balance[0]);
                 let contract = config.contract;
-                // TODO: wrap this into Promise and show user Vault after
-                document.getElementById("button_withdraw").style.display = 'none';
-                if (token_id == 'NEAR') {
-                    contract.withdraw_all({
-                        account_id: wallet.account() //current user
-                    }, gas, "1");
-                } else {
-                    contract.withdraw_all({
-                        account_id: wallet.account(),
-                        token_id: token_id
-                    }, gas, "1");
+                let token_id = localStorage.getItem("token_id");
+                //let wallet = config.wallet;
+                try {
+                    if (token_id == 'NEAR') {
+                        await contract.withdraw_all({
+                            account_id: wallet.getAccountId() //current user
+                        }, gas, "1");
+                    } else {
+                        await contract.withdraw_all({
+                            account_id: wallet.getAccountId(),
+                            token_id: token_id
+                        }, gas, "1");
+                    };
+                } catch(e) {
+                    alert(
+                        "ERR_CATHING_WITHDRAW_ACTION \n" +
+                        "check your browser console for more info!" +
+                        e.toString()
+                    );
+                } finally {
+                    document.getElementById("button_withdraw").style.display = 'none';
+                    document.getElementById("button_send_safe").style.display = 'none';
+                    document.getElementById("button_send_unsafe").style.display = 'none';
                 }
             });
         }  
@@ -388,9 +411,20 @@
     <h3 style="margin-bottom: 20px;">current user vault</h3>
         <table style="margin: auto; top:10px; width: 30%; border: 0;">
            <!--%USERVAULT%-->
-          <tbody>
-            %USERVAULT%
-          </tbody>
+            <thead>
+                <h3 style="text-align:center">User Vault</h3>
+                <tr>
+                    <th>number of NEAR sends</th>
+                    <th>total NEAR sended</th>
+                    <th>tokens used</th>
+                    <th></th>
+                    <th>tokens balances</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                %USERVAULT%
+            </tbody>
         </table>
 </div>
 </body>
