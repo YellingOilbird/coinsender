@@ -327,22 +327,17 @@
                 let app_balance = document.getElementById("deposit").innerText.split(' ');
                 app_balance = parseInt(app_balance[0]);
                 let contract = config.contract;
-
-                let token_id = localStorage.getItem("token_id");
-                let wallet = config.wallet;
-                if (token_id == 'NEAR') {
-                    await contract.withdraw_all({
-                        account_id: wallet.account() //current user
-                    }, gas, "1").then();
                 // TODO: wrap this into Promise and show user Vault after
                 document.getElementById("button_withdraw").style.display = 'none';
+                if (token_id == 'NEAR') {
+                    contract.withdraw_all({
+                        account_id: wallet.account() //current user
+                    }, gas, "1");
                 } else {
-                    await contract.withdraw_all({
+                    contract.withdraw_all({
                         account_id: wallet.account(),
                         token_id: token_id
-                    }, gas, "1").then();
-                // TODO: wrap this into Promise and show user Vault after
-                document.getElementById("button_withdraw").style.display = 'none';
+                    }, gas, "1");
                 }
             });
         }  
@@ -393,18 +388,9 @@
     <h3 style="margin-bottom: 20px;">current user vault</h3>
         <table style="margin: auto; top:10px; width: 30%; border: 0;">
            <!--%USERVAULT%-->
-            <thead>
-                <tr>
-                    <th>User Vault</th>
-                    <th>number of NEAR sends</th>
-                    <th>total NEAR sended</th>
-                    <th>tokens used</th>
-                    <th>tokens balances</th>
-                </tr>
-            </thead>
-            <tbody>
-                %USERVAULT%
-            </tbody>
+          <tbody>
+            %USERVAULT%
+          </tbody>
         </table>
 </div>
 </body>
