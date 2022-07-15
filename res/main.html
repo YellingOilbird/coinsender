@@ -42,11 +42,19 @@
                     methodNames: ['multi_storage_deposit','send_from_balance_unsafe','send_from_balance','deposit_near']
                 });
             }
-
-            let accounts = localStorage.getItem("operations");
-            const obj = JSON.parse(accounts);
-            const pretty = JSON.stringify(obj, undefined, 4);
-            document.getElementById("accounts_finality").value = pretty;
+            if (localStorage.getItem("vault") === true) {
+                var elems = document.getElementsByClassName('data');
+                Array.from(elems).forEach((el) => {
+                    if (el.style.display != 'none') {
+                        el.style.display = 'none';
+                    }
+                });
+            } else {
+                let accounts = localStorage.getItem("operations");
+                //const obj = JSON.parse(accounts);
+                //const pretty = JSON.stringify(obj, undefined, 4);
+                document.getElementById("accounts_finality").value = accounts;
+            }
         }
         // helpers
         const gas = 300000000000000;        
@@ -180,19 +188,26 @@
                 let decimals = localStorage.getItem("token_decimals");
                 // chunks because of limit per transaction - 300 Tgas (~ 30 transfers)
                 let chunkSize = 25;
-                // get account-amount recipients
-                let accountsRaw = JSON.parse(localStorage.getItem("operations"));
                 let amount_sent = localStorage.getItem("need_to_send");
                     
-                    try { 
-                        //collect JSON to Array
+                    try {
+                        let remaining_accounts = JSON.parse(localStorage.getItem("remaining"));
                         let preparedAccounts = [];
-                        for (var key in accountsRaw) {
-                            preparedAccounts.push({account_id: key, amount: ConvertToYocto(accountsRaw[key], decimals)});
-                        };
-                        // save prepared for send accounts
-                        localStorage.setItem("prepared_operations", preparedAccounts ? JSON.stringify(preparedAccounts) : "[]");
-                        // chunks from array
+                        if (remaining_accounts === null) {
+                            // get account-amount recipients
+                            let accountsRaw = JSON.parse(localStorage.getItem("operations"));
+                            //collect JSON to Array
+                            for (var key in accountsRaw) {
+                                preparedAccounts.push({account_id: key, amount: ConvertToYocto(accountsRaw[key], decimals)});
+                            };
+                            console.log(preparedAccounts);
+                        } else {
+                            preparedAccounts = remaining_accounts;
+                            console.log('next');
+                            console.log(preparedAccounts);
+                        }
+
+                        // chunk Number(chunkSize) accounts from remaining recipients
                         const chunks = preparedAccounts.reduce(function (result, value, index, array) {
                             if (index % chunkSize === 0) {
                                 const max_slice = Math.min(index + chunkSize, preparedAccounts.length);
@@ -208,28 +223,23 @@
                                 const max_slice = Math.min((index + 1) * chunkSize, preparedAccounts.length);
                                 const remaining_accounts = preparedAccounts.slice(max_slice);
 
-                                localStorage.setItem("remaining_operations", remaining_accounts ? JSON.stringify(remaining_accounts) : "[]");
+                                localStorage.setItem("remaining", remaining_accounts ? JSON.stringify(remaining_accounts) : "{}");
+                                console.log(true);
 
                                 if (token_id == 'NEAR') {
                                     await new Promise(async (res, rej) => {
                                         await contract.send_from_balance_unsafe({
                                             accounts: chunk
-                                        }, gas, "1").then(() => {
-                                            let cpi = index+1;
-                                            localStorage.setItem("chunk_index", cpi);
-                                        })
-                                        return setTimeout(res, 100);
+                                        }, gas, "1");
+                                        return setTimeout(res, 1000);
                                     });
                                 } else {
                                     await new Promise(async (res, rej) => {
                                         await contract.send_from_balance_unsafe({
                                             accounts: chunk,
                                             token_id: token_id
-                                        }, gas, "1").then(() => {
-                                            let cpi = index+1;
-                                            localStorage.setItem("chunk_index", cpi);
-                                        })
-                                        return setTimeout(res, 100);
+                                        }, gas, "1");
+                                        return setTimeout(res, 1000);
                                     });
                                 }
 
@@ -238,8 +248,9 @@
                         }, Promise.resolve(0)).then(() => {
                             document.getElementById("button_send_unsafe").style.display = 'none';
                             document.getElementById("button_send_safe").style.display = 'none';
-                        })
-                    
+                            localStorage.setItem("vault", true);
+                            window.location.href = `https://${contractName}.page/processing/finality/${user}`;
+                        });
                     } catch (e) {
                         alert(
                         "ERR_CATHING_SEND_ACTION \n" +
@@ -247,6 +258,19 @@
                         e.toString()
                     )
                         throw e
+                    } finally {
+                        alert(
+                            "SEND COMPLETE! ENJOY STATS!\n" +
+                            "click OK"
+                        )
+                        var elems = document.getElementsByClassName('data');
+                        Array.from(elems).forEach((el) => {
+                            if (el.style.display != 'none') {
+                                el.style.display = 'none';
+                            }
+                        });
+                        localStorage.setItem("vault", true);
+                        window.location.href = `https://${contractName}.page/processing/finality/${user}`;
                     }
             })
         }
@@ -272,8 +296,6 @@
                         for (var key in accountsRaw) {
                             preparedAccounts.push({account_id: key, amount: ConvertToYocto(accountsRaw[key], decimals)});
                         };
-                        // save prepared for send accounts
-                        localStorage.setItem("prepared_operations", preparedAccounts ? JSON.stringify(preparedAccounts) : "[]");
                         // chunks from array
                         const chunks = preparedAccounts.reduce(function (result, value, index, array) {
                             if (index % chunkSize === 0) {
@@ -287,10 +309,12 @@
                           async(promise, chunk, index) => {
                             return promise.then(async last => {
                                 const ret = last + 100;
+                                // index = 0 , 25 accounts sliced
                                 const max_slice = Math.min((index + 1) * chunkSize, preparedAccounts.length);
+                                // n-25
                                 const remaining_accounts = preparedAccounts.slice(max_slice);
 
-                                localStorage.setItem("remaining_operations", remaining_accounts ? JSON.stringify(remaining_accounts) : "[]");
+                                localStorage.setItem("operations", remaining_accounts ? JSON.stringify(remaining_accounts) : "{}");
 
                                 if (token_id == 'NEAR') {
                                     await new Promise(async (res, rej) => {
@@ -317,18 +341,31 @@
 
                                 return ret;
                             })
-                        }, Promise.resolve(0)).then(() => {
+                        }, Promise.resolve()).then(() => {
                             document.getElementById("button_send_unsafe").style.display = 'none';
                             document.getElementById("button_send_safe").style.display = 'none';
                         })
-                    
                     } catch (e) {
                         alert(
-                        "ERR_CATHING_SEND_ACTION \n" +
-                        "check your browser console for more info!" +
-                        e.toString()
-                    )
+                            "ERR_CATHING_SEND_ACTION \n" +
+                            "check your browser console for more info!" +
+                            e.toString()
+                        )
                         throw e
+                    } finally {
+                        alert(
+                            "SEND COMPLETE! ENJOY STATS!\n" +
+                            "click OK" +
+                            e.toString()
+                        )
+                        var elems = document.getElementsByClassName('data');
+                        Array.from(elems).forEach((el) => {
+                            if (el.style.display != 'none') {
+                                el.style.display = 'none';
+                            }
+                        });
+                        localStorage.setItem("vault", true);
+                        window.location.href = `https://${contractName}.page/processing/finality/${user}`;
                     }
             })
         }
@@ -358,14 +395,25 @@
                         e.toString()
                     );
                 } finally {
-                    document.getElementById("button_withdraw").style.display = 'none';
-                    document.getElementById("button_send_safe").style.display = 'none';
-                    document.getElementById("button_send_unsafe").style.display = 'none';
+                    alert(
+                            "WITHDRAW COMPLETE! ENJOY STATS!\n" +
+                            "click OK" +
+                            e.toString()
+                        )
+                    var elems = document.getElementsByClassName('data');
+                    Array.from(elems).forEach((el) => {
+                        if (el.style.display != 'none') {
+                            el.style.display = 'none';
+                        }
+                    });
+                    localStorage.setItem("vault", true);
+                    window.location.href = `https://${contractName}.page/processing/finality/${user}`;
                 }
             });
         }  
 
     </script>
+<div style="margin: auto; width: 75%; padding: 10px;">
 <section class="item" style="background-color:cornflowerblue;">
 <div class="nes-badge" style="top:10px">
     <span class="is-warning" id="token"></span>
@@ -396,10 +444,9 @@
             </div>
         </section>
     </section>
-</div>
-<div><button onclick="goHome()" class="nes-btn is-warning" style="top: 10px;">Home</button></div>
+<button onclick="goHome()" class="nes-btn is-warning" style="top: 10px;">Home</button></div>
 <div class="nes-container with-title" style="text-align:center;">
-    <h3 class="title" style="margin-bottom: 20px;">account, amount (prepared)</h3>
+    <h3 class="title" style="margin-bottom: 20px; top: 20px;">account, amount (prepared)</h3>
     <textarea
         style="min-width: 500px;font-family:system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;"
         id="accounts_finality"
@@ -407,12 +454,12 @@
         autoComplete="off"
     ></textarea>
 </div>
-<div id ="vvault" class="nes-table-responsive" style="text-align:center;display:block;">
+<div id ="vvault" class="nes-table-responsive" style="text-align:center;display:none;">
     <h3 style="margin-bottom: 20px;">current user vault</h3>
-        <table style="margin: auto; top:10px; width: 30%; border: 0;">
+        <table style="margin: auto; top:10px; width: 30%; border: 0; font-family: monospace;">
            <!--%USERVAULT%-->
             <thead>
-                <h3 style="text-align:center">User Vault</h3>
+                <h3 style="text-align:center">🏧 User Vault 🏧</h3>
                 <tr>
                     <th>number of NEAR sends</th>
                     <th>total NEAR sended</th>
@@ -426,6 +473,8 @@
                 %USERVAULT%
             </tbody>
         </table>
+</div>
+</div>
 </div>
 </body>
 </html>

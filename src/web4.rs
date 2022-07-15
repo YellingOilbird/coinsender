@@ -166,6 +166,22 @@ impl Contract {
             )
         }
 
+        // "/processing/finality/user.testnet"
+        // after success send to Vault stats
+        if path.starts_with("/processing/finality/") {
+            let user_id:AccountId = AccountId::from_str(&path[21..]).expect("ERR_PARSE_ACCOUNT_ID");
+
+            let vvault_html = self.get_user_vault_html(user_id.clone());
+
+            return Web4Response::html_response(
+            include_str!("../res/main.html")
+                .replace("%CONTRACT_ID%", &env::current_account_id().to_string())
+                .replace("%BALANCE%", "VAULT MODE")
+                .replace("%USERVAULT%", &vvault_html)
+            )
+        }
+
+
         // Index
         let mut app_html = "".to_string();
         let mut select_options="".to_string();
@@ -177,11 +193,9 @@ impl Contract {
                 token_data.ticker.clone().unwrap_or_default(),
             );
             app_html = replace_brackets(app_html);
-            // supported tokens to select
-            
-            // <option value='NEAR:24'>NEAR</option>
-
-            
+            // supported tokens to select. HTML:
+            // <option value='NEAR:24:NEAR'>NEAR</option>
+            // <option value='ft_account.testnet:24:FT'>FT</option>
             select_options = format!("{}<option value='{}:{}:{}''>{}</option>", 
                 &select_options,
                 account_id.clone(),
@@ -205,14 +219,14 @@ impl Contract {
         let mut vault_used_tokens_response = "".to_string();
         let vvault = self.get_user_vault(account_id);
         for (account, balance) in &vvault.token_deposits {
-            vault_token_balances_response = format!("{}<tr><td>{}</td><td>{}</td></tr>", 
+            vault_token_balances_response = format!("{}{}:{} <i class='nes-icon coin is-small'></i>", 
                 &vault_token_balances_response,
                 self.get_token_ticker(account.clone()),
                 balance.to_string(),
             );
         }
         for token in &vvault.tokens_used {
-            vault_used_tokens_response = format!("USED TOKENS<tr><td>{}</td><td>{}</td></tr>", 
+            vault_used_tokens_response = format!("{}[ {} ]", 
                 &vault_used_tokens_response,
                 token,
             );
