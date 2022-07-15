@@ -1,7 +1,7 @@
 # COINSENDER
 ## Realised features:
-#### contract side
-- ##### *Rust smart-contract included:*
+### contract side
+- ### *Rust smart-contract included:*
 - Send functions which takes many accounts to transfer NEAR
 - Send functions which takes many accounts to transfer FT
 - Deposit with token options for more user-friendly interactions
@@ -10,19 +10,19 @@
 - ```Vault``` which implements simple stats and update actions for checking occupation and reward users by activity in the NEAR future
 - Contract works without initialization but owner can set after by call ```set_owner()``` from ```contract_id```
 
-- ##### *WEB4*
+- ### *WEB4*
 - web4 implemented
 - Front-end side creates GET links which retrieved by contract web4 module and processing to show many views
 - User balance comes directly from Rust
 
-- ##### *JS(Front-end)
+- ### *JS(Front-end)
 - Custom function for convertation choosed token to yocto amounts based on ```formatNearAmount``` from ```near-api-js```
 - 90-s styled design from https://nostalgic-css.github.io/NES.css/[NES-CSS]
 - Sequence of state changes using only ```localStorage```
 - When token whitelisted by owner he actually comes to index page as pretty-view with icon and also as SELECT option
 
 
-#### Unimplemented (in-deploy)
+### Unimplemented (in-deploy)
 This is my first experience with front-end side and it goes little hard. But JS part is 70% done (still with several bugs on it).
 But I'm on the way to finish web and go to upgrade user vault functions and introduce rewards for most activity senders.  For example - top 10 senders by number of send and by summ in USN will be rewarded with free-month without fees / 100 sends without fees, etc.
 
