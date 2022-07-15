@@ -44,11 +44,16 @@
     <script src="https://cdn.jsdelivr.net/npm/near-api-js@0.41.0/dist/near-api-js.min.js"></script>
     <script>
         window.onload = () => {
+            //localStorage.clear(); // for tests
             console.log(localStorage);
             const vefify_button = document.getElementById("verify");
             const sign_button = document.getElementById('sign');
+            const deposit_button = document.getElementById("button_deposit");
+            const send_button = document.getElementById("button_send");
             const deposit_area = document.getElementById('deposit-container');
-            const need_to_deposit = localStorage.getItem('need_to_send');
+            const need_to_deposit = localStorage.getItem('need_to_deposit');
+            const need_to_send = localStorage.getItem('need_to_send');
+
             if (!wallet.isSignedIn()) {
                 sign_button.style.display = 'block';
                 vefify_button.style.display = 'none';
@@ -57,31 +62,64 @@
 
             if (wallet.isSignedIn()) {
                 GetSelectedTokenId();
-                if (need_to_deposit) {
-                    // only deposit available
+                
+                console.log(`on load need_to_deposit: ${need_to_deposit}`);
+                console.log(`on load need_to_send: ${need_to_send}`);
+                if (need_to_send !== null && need_to_deposit === null) {
+                    // only send available
                     sign_button.style.display = 'none';
                     vefify_button.style.display = 'none';
+                    deposit_button.style.display = 'none';
+                    send_button.style.display = 'block';
                     var verfs = document.getElementsByClassName('verify');
                     Array.from(verfs).forEach((el) => {
                         if (el.style.display != 'none') {
                             el.style.display = 'none';
                         }
                     });
-                } else {
+                    var deps = document.getElementsByClassName('deposit');
+                    Array.from(deps).forEach((el) => {
+                        if (el.style.display != 'none') {
+                            el.style.display = 'none';
+                        }
+                    });
+                }
+
+                if (need_to_deposit !== null && need_to_send === null) {
+                    // only deposit available
+                    sign_button.style.display = 'none';
+                    vefify_button.style.display = 'none';
+                    deposit_button.style.display = 'block';
+                    send_button.style.display = 'none';
+                    var verfs = document.getElementsByClassName('verify');
+                    Array.from(verfs).forEach((el) => {
+                        if (el.style.display != 'none') {
+                            el.style.display = 'none';
+                        }
+                    });
+                    var deps = document.getElementsByClassName('deposit');
+                    Array.from(deps).forEach((el) => {
+                        if (el.style.display != 'none') {
+                            el.style.display = 'none';
+                        }
+                    });
+                }
+                
+                if (need_to_deposit === null && need_to_send === null) {
                     sign_button.style.display = 'none';
                     vefify_button.style.display = 'block';
                 }
-                // check this
-                // textarea account loads
-                // reset accounts textarea
+
                 const accounts = localStorage.getItem("operations");
                 const obj = JSON.parse(accounts);
-                const pretty = JSON.stringify(obj, undefined, 4);                    document.getElementById("accounts").value = pretty;
+                const pretty = JSON.stringify(obj, undefined, 4);
+                document.getElementById("accounts").value = pretty;
             }
         }
+
         // helpers
         const gas = 300000000000000; 
-        const contractName = 'v2coinsender.testnet';
+        const contractName = 'v3coinsender.testnet';
         // token_id
         const token_id = localStorage.getItem("token_id");
         const token_ticker = localStorage.getItem("token_ticker");
@@ -115,6 +153,7 @@
                 });
             });
         }
+
         // trim utils for convert
         function trimLeadingZeroes(value) {
             value = value.replace(/^0+/, '');
@@ -201,18 +240,8 @@
             }
         }
 
-        // const button = document.getElementById('sign');
-        // if (!wallet.isSignedIn()) {
-        //     console.log(")!)(*&#^%$");
-        //     wallet.requestSignIn({
-        //             contractId: contractName,
-        //             methodNames: ['multi_storage_deposit','send_from_balance_unsafe','send_from_balance'],
-        //     });
-        // };
-
         // main function
         async function verifyAccounts() {
-            console.log("click");
             await this.getNearApi().then (async (near) => {
                 console.log("near_connection:", near.connection);
                 let decimals = Number(localStorage.getItem("token_decimals"));
@@ -271,7 +300,7 @@
                     accounts = localStorage.getItem("operations");
                     const obj = JSON.parse(accounts);
                     const pretty = JSON.stringify(obj, undefined, 4);
-                    document.getElementById("accounts").value = pretty;
+                    document.getElementById("accounts").value = pretty
 
                     if (wallet.isSignedIn()) {
                         if (token_id == 'NEAR') {
@@ -293,6 +322,14 @@
                                 }
                             });
                             document.getElementById("verify").style.display = 'none';
+                            // disable deposit
+                            var verfs = document.getElementsByClassName('deposit');
+                            Array.from(verfs).forEach((el) => {
+                                if (el.style.display != 'none') {
+                                    el.style.display = 'none';
+                                }
+                            });
+                            document.getElementById("button_deposit").style.display = 'none';
                             window.scrollTo(0,0);
                         }
                     } else {
@@ -315,7 +352,7 @@
                 
               if (checkedAccounts.length > 0) {
 
-                const groupSize = 50;
+                const groupSize = 30;
                 let groupIndex = -1;
                 let accountGroups = [];
                 let total_already_registered = 0;
@@ -344,32 +381,27 @@
                     await storageCheckAccountGroup().then((nonFundedAccounts) => {
                         Object.values(nonFundedAccounts).map(account => {
                             if (account) {
-                                fundedAccounts.push(account);
+                                fundedAccounts[account] = operations[account];
                             }
                         });
-                    });
+                    }).then(
+                      await new Promise((res, _rej) => {
+                        if (fundedAccounts.length > 0) {
+                            let total_funded_required = bigInt(fundedAccounts.length).multiply(bigInt("1250000000000000000000"));
+                            contract.multi_storage_deposit({
+                                accounts: fundedAccounts,
+                                token_id: token_id
+                            }, gas, total_funded_required);
+                            console.log("storage chunk produced");
+                        }
+                        else {
+                            setDepositParameters();
+                        }
+                      })
+                    );
                     index++;
                 }
-                console.log(`NEED_TO_FUND:${fundedAccounts}`);
-
-                // fund
-                if (fundedAccounts.length > 0) {
-                    // storage bond per account multiplied by number of accounts
-                    let total_funded_required = bigInt(fundedAccounts.length).multiply(bigInt("1250000000000000000000")).toString();
-                    console.log(contractFT);
-                    console.log(contract);
-                    console.log(total_funded_required)
-                    // Multi-register
-                    let result = await contract.multi_storage_deposit({
-                        accounts: fundedAccounts,
-                        token_id: token_id
-                    }, gas, total_funded_required).then({
-                        // set button and area
-                        {setDepositParameters()}
-                    });
-                }
-                //prepare to deposit
-                setDepositParameters();
+                console.log(`FUNDED:${fundedAccounts}`);
               } else {
                     window.alert("ERR_NO_ACCOUNTS!").then(
                         window.location.reload()
@@ -389,22 +421,31 @@
             });
             let button_deposit = document.getElementById("button_deposit");
             // calculation how many tokens required to send
-            let app_balance = document.getElementById("deposit").value;
+            let app_balance = document.getElementById("deposit").innerText.split(' ');
+            app_balance = parseInt(app_balance[0]);
             console.log("app_balance(0)",app_balance);
             let total = localStorage.getItem("total");
             let decimals = localStorage.getItem("token_decimals");
             let amount = ConvertToYocto(total, decimals);
+            let need_to_deposit = bigInt(amount);
                 if (Number(app_balance) < Number(total)) {
-                    let app_balance_converted = ConvertToYocto(app_balance, decimals);
-                    let need_to_deposit = (Number(amount) - Number(app_balance_converted)).toString();
-                    console.log("app_balance < total_sended", app_balance, total);
+                    if (app_balance !== 0) {
+                        let app_balance_converted = ConvertToYocto(app_balance, decimals).toString();
+                        let need_to_deposit = bigInt(amount).minus(bigInt(app_balance_converted));
+                    }
+                    let need_to_deposit_int = Math.round(bigInt(need_to_deposit).divide(bigInt(Math.pow(10, decimals))));
+                    console.log("need_to_deposit_int", need_to_deposit_int);
 
-                    localStorage.setItem("need_to_deposit", need_to_deposit);
+                    localStorage.setItem("need_to_deposit", need_to_deposit.toString());
                     console.log("need_to_deposit", need_to_deposit);
 
-                    button_deposit.innerText = `Deposit ${need_to_deposit} ${token_ticker}`;
+                    button_deposit.innerText = `Deposit ${need_to_deposit_int} ${token_ticker}`;
                     button_deposit.style.display = 'block';
                 } else {
+                    if (app_balance === NaN || app_balance === null) {
+                        alert("something wrong with your connection to wallet!\n Redirect to main page...");
+                        window.location.href = `https://${contractName}.page/`;
+                    }
                     // go to send
                     var sends = document.getElementsByClassName('send');
                     Array.from(sends).forEach((el) => {
@@ -413,9 +454,17 @@
                         }
                     });
                     document.getElementById("button_send").style.display = 'block';
+                    let need_to_send = bigInt(amount);
+                    localStorage.setItem("need_to_send", need_to_send.toString());
+                    // disable deposit
+                    Array.from(deps).forEach((el) => {
+                        if (el.style.display == 'block') {
+                            el.style.display = 'none';
+                        }
+                    });
                 }
                 // disable storage
-                    var verfs = document.getElementsByClassName('storage');
+                var verfs = document.getElementsByClassName('storage');
                 Array.from(verfs).forEach((el) => {
                     if (el.style.display != 'none') {
                         el.style.display = 'none';
@@ -439,12 +488,17 @@
                 console.log(localStorage);
                 const total = localStorage.getItem("total");
                 const decimals = localStorage.getItem("token_decimals");
-                const amount = localStorage.getItem("need_to_deposit");
+                const amount = localStorage.getItem("need_to_deposit").toString();
                 console.log(`${token_ticker} choosen, all ready to send ${total} ${token_ticker} (${amount} yocto${token_ticker}) !`);
                 console.log("total-amount_need", total, amount);
                 console.log("const_contract", contract);
                 console.log("config_contract", config.contract);
                 console.log("config_ft", config.contractFT);
+                let sended_amount = ConvertToYocto(total, decimals);
+                let need_to_send = bigInt(sended_amount);
+                localStorage.setItem("need_to_send", need_to_send.toString());
+                localStorage.removeItem("need_to_deposit");
+                localStorage.removeItem("total");
                 // Deposit 
                     if (token_id == 'NEAR') {
                         let contract = config.contract;
@@ -462,7 +516,6 @@
                         });
                     }
                 //////////////////
-                // THEN GO TO SEND
                 // enable send
                 // go to send
                 var deps = document.getElementsByClassName('send');
@@ -472,14 +525,6 @@
                     }   
                 });
                 document.getElementById("button_send").style.display = 'block';
-                // disable deposit
-                var verfs = document.getElementsByClassName('deposit');
-                Array.from(verfs).forEach((el) => {
-                    if (el.style.display != 'none') {
-                        el.style.display = 'none';
-                    }
-                });
-                document.getElementById("button_deposit").style.display = 'none';
             });
         }
 
