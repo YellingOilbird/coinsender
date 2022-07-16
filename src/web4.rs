@@ -168,6 +168,7 @@ impl Contract {
 
         // "/processing/finality/user.testnet"
         // after success send to Vault stats
+        // Works good, but hides on web page for a while
         if path.starts_with("/processing/finality/") {
             let user_id:AccountId = AccountId::from_str(&path[21..]).expect("ERR_PARSE_ACCOUNT_ID");
 
