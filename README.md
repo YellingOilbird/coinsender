@@ -1,4 +1,6 @@
 # COINSENDER
+## see user vault web4 example on https://coinsender.testnet.page/processing/finality/rmlsnk.testnet where u can paste your user account to see stats
+
 ## Realised features:
 ### contract side
 - ### *Rust smart-contract included:*
@@ -70,7 +72,7 @@ export TEN_TOKENS=10000000000000000000
 
 #### tokens
 ```shell
-near call $CONTRACT_ID whitelist_token '{"token_id": "'$REF'"}' --accountId $CONTRACT_ID --depositYocto 1 --gas $GAS
+near call $CONTRACT_ID whitelist_token '{"token_id": "'$LNC'"}' --accountId $CONTRACT_ID --depositYocto 1 --gas $GAS
 near call $CONTRACT_ID remove_token '{"token_id": "'$REF'"}' --accountId $CONTRACT_ID  --gas $GAS
 near call $CONTRACT_ID get_whitelisted_tokens '' --accountId $CONTRACT_ID
 ```

@@ -218,7 +218,7 @@ impl Contract {
                 UpdateVaultAction::AfterWithdraw, 
                 account_id, 
                 None,
-                None, 
+                Some(unwrapped_token_id.clone()), 
                 None
             );
         // NEAR

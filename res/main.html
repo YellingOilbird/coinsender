@@ -35,7 +35,6 @@
     <script src="https://cdn.jsdelivr.net/npm/near-api-js@0.41.0/dist/near-api-js.min.js"></script>
     <script>
         window.onload = () => {
-            window.alert("This is pre-audited BETA version. Use at your own risk!");
             GetSelectedTokenId();
             if (!wallet.isSignedIn()) {
                 wallet.requestSignIn({
@@ -43,17 +42,24 @@
                     methodNames: ['multi_storage_deposit','send_from_balance_unsafe','send_from_balance','deposit_near']
                 });
             }
-            if (localStorage.getItem("vault") === true) {
+            if (document.getElementById('deposit').innerText === "VAULT MODE") {
                 var elems = document.getElementsByClassName('data');
                 Array.from(elems).forEach((el) => {
                     if (el.style.display != 'none') {
                         el.style.display = 'none';
                     }
                 });
+                document.getElementById("acc_area").style.display = 'none';
+                var v = document.getElementById('vvault');
+                v.style.display = 'block';
             } else {
+                // TODO - output remaining
                 let accounts = localStorage.getItem("operations");
-                //const obj = JSON.parse(accounts);
-                //const pretty = JSON.stringify(obj, undefined, 4);
+                let remaining_set = localStorage.getItem("remaining");
+                if (remaining_set !== null) {
+                    document.getElementById("accounts_finality").value = localStorage.getItem("chunk");
+                }
+                //TODO - pretty parsed
                 document.getElementById("accounts_finality").value = accounts;
             }
         }
@@ -170,6 +176,8 @@
 
         function goHome() {
             localStorage.removeItem("operations");
+            localStorage.removeItem("remaining");
+            localStorage.removeItem("vault");
             localStorage.removeItem("total");
             localStorage.removeItem("token_id");
             localStorage.removeItem("token_ticker");
@@ -225,6 +233,7 @@
                                 const remaining_accounts = preparedAccounts.slice(max_slice);
 
                                 localStorage.setItem("remaining", remaining_accounts ? JSON.stringify(remaining_accounts) : "{}");
+                                localStorage.setItem("chunk", chunk);
                                 console.log(true);
 
                                 if (token_id == 'NEAR') {
@@ -413,7 +422,7 @@
         }  
 
     </script>
-<div style="margin: auto; width: 75%; padding: 10px;">
+<div style="margin: auto; width: 70%; padding: 10px;">
 <section class="item" style="background-color:cornflowerblue;">
 <div class="nes-badge" style="top:10px">
     <span class="is-warning" id="token"></span>
@@ -445,10 +454,10 @@
         </section>
     </section>
 <button onclick="goHome()" class="nes-btn is-warning" style="top: 10px;">Home</button></div>
-<div class="nes-container with-title" style="text-align:center;">
-    <h3 class="title" style="margin-bottom: 20px; top: 20px;">account, amount (prepared)</h3>
+<div id="acc_area" class="nes-container with-title" style="text-align:center; display: block;">
+    <h3 class="title" style="margin-bottom: 20px; top: 20px;">account, amount (remaining)</h3>
     <textarea
-        style="min-width: 500px;font-family:system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;"
+        style="min-width: 500px; min-height: 500px; font-family:system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;"
         id="accounts_finality"
         onclick='this.style.height = ""; this.style.height = this.scrollHeight + "px"'
         autoComplete="off"

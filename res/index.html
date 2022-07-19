@@ -43,7 +43,14 @@
     <script>
         window.onload = () => {
           window.alert("This is pre-audited BETA version. Use at your own risk!");
-          localStorage.clear();
+            localStorage.removeItem("operations");
+            localStorage.removeItem("remaining");
+            localStorage.removeItem("vault");
+            localStorage.removeItem("total");
+            localStorage.removeItem("token_id");
+            localStorage.removeItem("token_ticker");
+            localStorage.removeItem("token_decimals");
+            localStorage.removeItem("need_to_send");
           const selections = document.getElementById("selections");
           const description = document.getElementById('description');
           const supported = document.getElementById('supported');
@@ -58,6 +65,7 @@
             }
 
             if (!wallet.isSignedIn()) {
+                localStorage.clear();
                 sign_button.style.display = 'block';
                 selections.style.display = 'none';
                 description.style.display = 'none';
@@ -149,10 +157,10 @@
     </section>
 </section>
 </div>
-<div id="description" class="data" style="display:block;">
+<div id="description" class="data" style="display:block; margin: auto; width: 70%; padding: 10px;">
     <section class="topic">
         <section id = "main", class="nes-container with-title is-centered", style="top: 10px;">
-            <h3 class="title", style="font-size: 32px; animation: blink 3s ease-in-out; margin-top: 10px"><i class="nes-icon coin"></i> coinsender <img src="./assets/logo-black.svg"/></h3>
+            <h3 class="title", style="font-size: 32px; animation: blink 3s ease-in-out; margin-top: 10px"><i class="nes-icon coin"></i> coinsender  Ⓝ</h3>
 
             <p><strong>Coinsender</strong> 
                 allows send tokens to many accounts using one
@@ -169,13 +177,13 @@
         <table style="margin: auto; top:10px; width: 30%; border: 0;">
            <!--%TOKENS%-->
           <tbody>
-            <tr><td><img src="./assets/logo-black.svg"/></td><td> NEAR</td></tr>
+            <tr><td> "Ⓝ" </td><td> NEAR</td></tr>
             %TOKENS%
           </tbody>
         </table>
 </div>
 
-<div style="width: 50px;height: 50px; margin: 0 auto"><button id="sign" class="nes-btn" style="display: block; top:400px;" onclick="signIn()">SIGN IN</button></div>
+<div style="width: 50px;height: 50px; margin: 0 auto"><button id="sign" class="nes-btn" style="display: block; top:400px;width: 50px;height: 50px; margin: 0 auto" onclick="signIn()">SIGN IN</button></div>
 <h2 id="onsign" style="display:block; margin-top: 20px; text-align: center;">
     <i class="nes-icon coin"></i><br></br>
     <strong>COINSENDER</strong>  
