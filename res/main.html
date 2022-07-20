@@ -30,11 +30,36 @@
         th {
             text-align: center;
         }
-
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 9;
+            border-bottom: 4px solid #D3D3D3;
+            background-color: white;
+        }
+        .container {
+            display: flex;
+            align-items: baseline;
+            max-width: 980px;
+            margin: 0 auto;
+            padding-top: 1rem;
+            transition: all 0.2s ease;
+            box-sizing: border-box;
+        }
+        html, body {
+            margin: 0;
+            height: 100%;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/near-api-js@0.41.0/dist/near-api-js.min.js"></script>
     <script>
         window.onload = () => {
+
+            console.log(localStorage.getItem("remaining"));
+            console.log(localStorage.getItem("chunk"));
+
             GetSelectedTokenId();
             if (!wallet.isSignedIn()) {
                 wallet.requestSignIn({
@@ -378,7 +403,7 @@
         //             }
         //     })
         // }
-        // TODO: Check
+
         async function withdraw() {
             await this.getContracts().then(async (config) =>  {
                 let app_balance = document.getElementById("deposit").innerText.split(' ');
@@ -419,56 +444,85 @@
                     window.location.href = `https://${contractName}.page/processing/finality/${user}`;
                 }
             });
-        }  
+        }
 
-    </script>
+        function goVault() {
+            window.location.href = `https://${contractName}.page/processing/finality/${user}`
+        }
+
+</script>
+
 <div style="margin: auto; width: 70%; padding: 10px;">
-<section class="item" style="background-color:cornflowerblue;">
-<div class="nes-badge" style="top:10px">
-    <span class="is-warning" id="token"></span>
-</div>
-<div id="deposit-container" class="nes-badge is-icon" style="left: 350px; top: 20px;">
-    <span class="is-dark"><i class="nes-icon coin is-small"></i></span>
-    <span class="is-success" id="deposit" style="color: black;">%BALANCE%</span>
-</div>
-</section>
-<div class="data" style="top:20px">
-    <section class="topic">
-        <section id = "main", class="nes-container with-title is-centered", style="top: 10px;">
-            <p style="font-family:monospace;">
-                <a style="right: 600px;">⬆️ choosed token</a>
-                <a style="text-align:right;">/ app balance ⬆️</a>
-            </p>
-            <!--send-->
-            <div class="send">
-              <h3 class="title", style="font-size: 32px; animation: blink 3s ease-in-out; margin-top: 10px">
-                <i class="nes-icon coin is-large"></i> --> <i class="nes-icon coin"></i><i class="nes-icon coin"></i><i class="nes-icon coin"></i>
-              </h3>
-              <p><strong>send</strong></p>
-            </div> 
-            <div class="item">
-                <button id="button_send_unsafe" class="nes-btn is-warning" onclick="send_unsafe()" style="top: 10px; display: block;">SEND</button>
-                <button id="button_send_safe" class="nes-btn" onclick="send()" style="top: 10px; display: none;">SEND</button>
-                <button id="button_withdraw"  class="nes-btn is-success" style="top: 10px; display: block;" onclick="withdraw()">WITHDRAW</button>
+    
+    <header style="background-color:black;">
+        <div class="container">
+
+            <div class="nav-buttons" style="margin-right: auto; box-sizing: border-box;">
+                <button onclick="goHome()" class="nes-btn is-error">Home</button>
+                <button onclick="goVault()" class="nes-btn">Vault</button>
             </div>
-        </section>
-    </section>
-<button onclick="goHome()" class="nes-btn is-warning" style="top: 10px;">Home</button></div>
-<div id="acc_area" class="nes-container with-title" style="text-align:center; display: block;">
-    <h3 class="title" style="margin-bottom: 20px; top: 20px;">account, amount (remaining)</h3>
-    <textarea
-        style="min-width: 500px; min-height: 500px; font-family:system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;"
-        id="accounts_finality"
-        onclick='this.style.height = ""; this.style.height = this.scrollHeight + "px"'
-        autoComplete="off"
-    ></textarea>
-</div>
-<div id ="vvault" class="nes-table-responsive" style="text-align:center;display:none;">
+
+            <div class="nav-buttons" style="margin-top: auto; box-sizing: border-box;">
+                <div style="height: 30px; margin-bottom: 10px; right: 0;">
+                  <p style="font-size: small; color: whitesmoke; text-align: right;">APP DEPOSIT</p>
+                </div>
+                <div class="nes-badge is-icon">
+                  <span class="is-dark">$$$</span>
+                  <span class="is-warning" id="token">P8</span>
+                </div>
+                <div id="deposit-container" class="nes-badge is-icon">
+                  <span class="is-dark"><i class="nes-icon coin is-small"></i></span>
+                  <span class="is-success" id="deposit" style="color: black; width: auto;">%BALANCE%</span>
+                </div>
+            </div>
+
+        </div>
+    </header>
+
+    <div class = "data" style="margin: auto; width: 70%; display: block;">
+        <div class="data_sub" style="top:50px">
+          <section class="topic">
+              <section id = "main", class="nes-container with-title is-centered", style="top: 100px; border:0">
+                  <p style="font-family:monospace;">
+                    Send tokens to checked recipients via "send" button. If you are send to more then 25 accounts it will be sliced automatically to chunks by 25 accounts per chunk. 
+                  </p>
+                  <p style="font-family: monospace;">
+                    <strong>Every click on "SEND" button will redirect you to sign transaction, so you can check process via approval transaction window or see remaining accounts in window below</strong>
+                  </p>
+                  <div class="send">
+                    <h3 class="title", style="font-size: 32px; animation: blink 3s ease-in-out; margin-top: 10px">
+                      <i class="nes-icon coin is-large"></i> -> <i class="nes-icon coin"></i><i class="nes-icon coin"></i><i class="nes-icon coin"></i>
+                    </h3>
+                  </div> 
+                  <div class="item">
+                      <button id="button_send_unsafe" class="nes-btn is-warning" onclick="send_unsafe()" style="margin: auto; width: 20%; padding: 10px; top: 10px; display: block;">SEND</button>
+                      <p style="font-family:monospace;">send tokens. check remaining accounts below</p>
+                      <button id="button_withdraw"  class="nes-btn is-success" style="margin: auto; width: 40%; padding: 10px; top: 10px; display: block;" onclick="withdraw()">WITHDRAW</button>
+                      <p style="font-family:monospace;">withdraw all from app</p>
+                  </div>
+              </section>
+          </section>
+          <div id="acc_area" class="nes-container with-title" style="text-align:center; display: block; top:30px;">
+            <h3 class="title" style="margin-bottom: 20px;">account, amount (remaining)</h3>
+              <textarea
+                  style="min-width: 500px; min-height: 500px; font-family:system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;"
+                  id="accounts_finality"
+                  onclick='this.style.height = ""; this.style.height = this.scrollHeight + "px"'
+                  autoComplete="off"
+              ></textarea>
+          </div>
+        </div>
+      </div>
+
+
+<!-- vault data -->
+<div id ="vvault" style="margin: auto; height: 100%; text-align:center; display:none; top:20px">
+    <div class="nes-container" style="top:100px; border:0">
     <h3 style="margin-bottom: 20px;">current user vault</h3>
         <table style="margin: auto; top:10px; width: 30%; border: 0; font-family: monospace;">
            <!--%USERVAULT%-->
             <thead>
-                <h3 style="text-align:center">🏧 User Vault 🏧</h3>
+                <h3 style="text-align:center; margin-bottom: 10px;">🏧 User Vault 🏧</h3>
                 <tr>
                     <th>number of NEAR sends</th>
                     <th>total NEAR sended</th>
@@ -482,8 +536,8 @@
                 %USERVAULT%
             </tbody>
         </table>
+    </div>
 </div>
-</div>
-</div>
+<button type="button" onclick="window.scrollTo(0,0);" class="nes-btn is-error scroll-btn active"><span>&lt;</span></button>
 </body>
 </html>

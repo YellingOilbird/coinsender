@@ -1,5 +1,9 @@
 # COINSENDER
-## see user vault web4 example on https://coinsender.testnet.page/processing/finality/rmlsnk.testnet where u can paste your user account to see stats
+#### see user vault web4 example on https://coinsender.testnet.page/processing/finality/rmlsnk.testnet where u can paste your user account to see stats
+#### see TODO file for progress
+### links:
+https://coinsender.testnet.page - testnet
+https://coinsender.near.page - mainnet (in deployment)
 
 ## Realised features:
 ### contract side
@@ -78,7 +82,8 @@ near call $CONTRACT_ID get_whitelisted_tokens '' --accountId $CONTRACT_ID
 ```
 #### vault
 ```shell
-near call $REF ft_transfer_call '{"receiver_id":"'$CONTRACT_ID'","amount": "'$TEN_TOKENS'", "msg":"deposit"}' --accountId $USER_ACCOUNT --depositYocto 1 --gas $GAS
+near call $CONTRACT_ID deposit_near '' --accountId $USER_ACCOUNT --amount 2 --gas $GAS
+near call $LNC ft_transfer_call '{"receiver_id":"'$CONTRACT_ID'","amount": "'$ONE_TOKEN'", "msg":"deposit"}' --accountId $USER_ACCOUNT --depositYocto 1 --gas $GAS
 near call $REF ft_transfer_call '{"receiver_id":"'$CONTRACT_ID'","amount": "'$HUNDRED_TOKENS'", "msg":"deposit"}' --accountId $USER_ACCOUNT --depositYocto 1 --gas $GAS
 //TODO FIX WITHDRAW TO PREDECCESSOR
 near call $CONTRACT_ID withdraw_all '{

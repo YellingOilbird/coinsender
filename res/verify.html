@@ -46,29 +46,35 @@
         window.onload = () => {
             //localStorage.clear(); // for tests
             console.log(localStorage);
+
             const vefify_button = document.getElementById("verify");
+            const clear_button = document.getElementById("clear");
             const sign_button = document.getElementById('sign');
             const deposit_button = document.getElementById("button_deposit");
             const send_button = document.getElementById("button_send");
             const deposit_area = document.getElementById('deposit-container');
             const need_to_deposit = localStorage.getItem('need_to_deposit');
             const need_to_send = localStorage.getItem('need_to_send');
+            const acc_area = document.getElementById('acc-area');
 
-            if (!wallet.isSignedIn()) {
+            if (wallet.isSignedIn()) {
                 sign_button.style.display = 'block';
                 vefify_button.style.display = 'none';
                 deposit_area.style.display = 'none';
+                acc_area.style.display = 'none';
             }
 
-            if (wallet.isSignedIn()) {
+            if (!wallet.isSignedIn()) {
                 GetSelectedTokenId();
                 
                 console.log(`on load need_to_deposit: ${need_to_deposit}`);
                 console.log(`on load need_to_send: ${need_to_send}`);
+
                 if (need_to_send !== null && need_to_deposit === null) {
                     // only send available
                     sign_button.style.display = 'none';
                     vefify_button.style.display = 'none';
+                    clear_button.style.display = 'none';
                     deposit_button.style.display = 'none';
                     send_button.style.display = 'block';
                     var verfs = document.getElementsByClassName('verify');
@@ -89,6 +95,7 @@
                     // only deposit available
                     sign_button.style.display = 'none';
                     vefify_button.style.display = 'none';
+                    clear_button.style.display = 'none';
                     deposit_button.style.display = 'block';
                     send_button.style.display = 'none';
                     var verfs = document.getElementsByClassName('verify');
@@ -108,6 +115,7 @@
                 if (need_to_deposit === null && need_to_send === null) {
                     sign_button.style.display = 'none';
                     vefify_button.style.display = 'block';
+                    clear_button.style.display = 'block';
                 }
 
                 const accounts = localStorage.getItem("operations");
@@ -322,6 +330,7 @@
                                 }
                             });
                             document.getElementById("verify").style.display = 'none';
+                            document.getElementById("clear").style.display = 'none';
                             // disable deposit
                             var verfs = document.getElementsByClassName('deposit');
                             Array.from(verfs).forEach((el) => {
@@ -479,6 +488,7 @@
                     }
                 });
                 document.getElementById("verify").style.display = 'none';
+                document.getElementById("clear").style.display = 'none';
                 window.scrollTo(0,0);
         }
 
@@ -539,77 +549,110 @@
                 window.location.href = `https://${contractName}.page/processing/send/ft/${token_id}/${user}`
             }
         }
+
+        function clearAccounts() {
+            let acc_area = document.getElementById("accounts");
+            acc_area.value = '';
+        }
         
     </script>
 <div style="margin: auto; width: 70%; padding: 10px;">
-    <section class="item" style="background-color:#92cc41;">
-    <div class="nes-badge" style="top:10px; left: 30px;">
-        <span class="is-warning" id="token">NEAR</span>
-    </div>
-    <div id="deposit-container" class="nes-badge is-icon" style="left:350px; top: 10px;">
-        <span class="is-dark"><i class="nes-icon coin is-small"></i></span>
-        <span class="is-success" id="deposit" style="color: black;">%BALANCE%</span>
-    </div>
-</section>
-<div class="data" style="top:20px">
-    <section class="topic">
-        <section id = "main", class="nes-container with-title is-centered", style="top: 15px;">
-            <p style="font-family:monospace;">
-                <a style="right: 600px;">⬆️ choosed token</a>
-                <a style="text-align:right;">/ app balance ⬆️</a>
+
+    <header style="background-color:black;">
+        <div class="container">
+
+            <div class="nav-buttons" style="margin-right: auto; box-sizing: border-box;">
+                <button onclick="goHome()" class="nes-btn is-error">Home</button>
+                <button onclick="goVault()" class="nes-btn">Vault</button>
+                <button onclick="goVault()" class="nes-btn is-success">Upload CSV</button>
+            </div>
+
+            <div class="nav-buttons" style="margin-top: auto; box-sizing: border-box;">
+                <div style="height: 30px; margin-bottom: 10px; right: 0;">
+                  <p style="font-size: small; color: whitesmoke; text-align: right;">APP DEPOSIT</p>
+                </div>
+                <div class="nes-badge is-icon">
+                  <span class="is-dark">$$$</span>
+                  <span class="is-warning" id="token"></span>
+                </div>
+                <div id="deposit-container" class="nes-badge is-icon">
+                  <span class="is-dark"><i class="nes-icon coin is-small"></i></span>
+                  <span class="is-success" id="deposit" style="color: black; width: auto;">%BALANCE%</span>
+                </div>
+            </div>
+
+        </div>
+    </header>
+
+    <div class = "data" style="margin: auto; width: 70%; display: block;">
+      <div class="data_sub" style="top:50px">
+
+        <section class="topic">
+          <section id = "main", class="nes-container with-title is-centered", style="top: 100px; border:0">
+            <p>
+                VERIFY AND CHECK ACCOUNTS
+            </p>
+            <p class="storage" style="font-family: monospace; display: none;">
+                <strong>Every fungible token except USN needs registered storage balance in token contract (0.00125 NEAR). When you click at CHECK STORAGE button we check this for all recipients and redirect you to approve storage registration for non-registered receiver(s)</strong>
+            </p>
+            <p class="verify" style="font-family:monospace; display: block;">
+                <strong>Verify accounts to delete incorrect ones</strong>
+            </p>
+            <p class="send" style="font-family: monospace; display: none;">
+                <strong>Now click on GO TO SEND for finalize your transfers!</strong>
             </p>
             <!--verify-->
             <div class="verify" style="display:block;">
               <h3 class="title", style="font-size: 32px; animation: blink 3s ease-in-out; margin-top: 10px">
                 <i>✅✅✅</i>
               </h3>
-              <p><strong>verify accounts</strong></p>
             </div>
             <!--storage-->
             <div class="storage" style="display:none;">
                 <h3 class="title", style="font-size: 32px; animation: blink 3s ease-in-out; margin-top: 10px">
                   <i> 💾 </i>
                 </h3>
-                <p><strong>check storage</strong></p>
               </div> 
             <!--deposit-->
             <div class="deposit" style="display:none;">
               <h3 class="title", style="font-size: 32px; animation: blink 3s ease-in-out; margin-top: 10px">
                 <i class="nes-icon coin is-large"></i>
               </h3>
-              <p><strong>deposit</strong></p>
             </div> 
             <!--send-->
             <div class="send" style="display:none;">
               <h3 class="title", style="font-size: 32px; animation: blink 3s ease-in-out; margin-top: 10px">
                 <i class="nes-icon coin is-large"></i> --> <i class="nes-icon coin"></i><i class="nes-icon coin"></i><i class="nes-icon coin"></i>
               </h3>
-              <p><strong>send</strong></p>
             </div> 
             <div class="item">
-                <button id="button_send" class="nes-btn is-warning" onclick="goSend()" style="top: 10px; display:none;">GO TO SEND!</button>
-                <button id="button_storage" class="nes-btn" onclick="checkStorage()" style="top: 10px; display:none;">CHECK STORAGE</button>
-                <button id="button_deposit"  class="nes-btn is-success" style="top: 10px; display:none;" onclick="depositTokens()">DEPOSIT</button>
+                <button id="button_send" class="nes-btn is-warning" onclick="goSend()" style="margin: auto; width: 30%; padding: 10px; top: 10px; display: none;">GO TO SEND!</button>
+                <button id="button_storage" class="nes-btn" onclick="checkStorage()" style="margin: auto; width: 30%; padding: 10px; top: 10px; display: none;">CHECK STORAGE</button>
+                <button id="button_deposit"  class="nes-btn is-success" style="margin: auto; width: 30%; padding: 10px; top: 10px; display: none;" onclick="depositTokens()">DEPOSIT</button>
+                <button id="verify" class="nes-btn" style="margin: auto; width: 30%; padding: 10px; top: 10px; display: none;" onclick="verifyAccounts()">VERIFY</button>
+                <button id="clear" class="nes-btn is-warning" style="margin: auto; width: 45%; padding: 10px; top: 10px; display: none;" onclick="clearAccounts()">CLEAR ACCOUNTS</button>
+                <button id="sign" class="nes-btn" style="margin: auto; width: 30%; padding: 10px; top: 10px; display: block;" onclick="signIn()">SIGN IN</button>
             </div>
+          </section>
         </section>
-    </section>
-</div>
-<div class="nes-container with-title" style="text-align:center;">
-    <h3 class="title" style="margin-bottom: 20px;">account, amount</h3>
-    <textarea
-        style="min-width: 500px; min-height: 500px; font-family:system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;"
-        id="accounts"
-        class="nes-textarea"
-        oninput='this.style.height = ""; this.style.height = this.scrollHeight + "px"'
-        autoComplete="off"
-        onchange="parseAmounts()"
-    ></textarea>
-</div>
-<button id="verify" class="nes-btn" onclick="verifyAccounts()">VERIFY</button>
+      </div>
+    </div>
+    
+    <div id="acc-area" class="nes-container with-title" style="text-align:center; top: 30px; display: block;">
+        <h3 class="title" style="margin-bottom: 20px;">account, amount</h3>
+        <textarea
+            style="min-width: 500px; min-height: 500px; font-family:system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;"
+            id="accounts"
+            class="nes-textarea"
+            oninput='this.style.height = ""; this.style.height = this.scrollHeight + "px"'
+            autoComplete="off"
+            onchange="parseAmounts()"
+        ></textarea>
+    </div>
+
 <p id="contract_id" style="display: none;">%CONTRACT_ID%</p>
-<div id="sign" class="nes-container is-centered" style="border: 0;">
-    <button id="sign" class="nes-btn" style="display: block;" onclick="signIn()">SIGN IN</button>
+
 </div>
-</div>
+<button type="button" onclick="window.scrollTo(0,0);" class="nes-btn is-error scroll-btn active"><span>&lt;</span></button>
 </body>
 </html>

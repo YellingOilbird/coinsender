@@ -42,15 +42,16 @@
 
     <script>
         window.onload = () => {
-          window.alert("This is pre-audited BETA version. Use at your own risk!");
             localStorage.removeItem("operations");
             localStorage.removeItem("remaining");
             localStorage.removeItem("vault");
+            localStorage.removeItem("chunk");
             localStorage.removeItem("total");
             localStorage.removeItem("token_id");
             localStorage.removeItem("token_ticker");
             localStorage.removeItem("token_decimals");
             localStorage.removeItem("need_to_send");
+            localStorage.removeItem("need_to_deposit");
           const selections = document.getElementById("selections");
           const description = document.getElementById('description');
           const supported = document.getElementById('supported');
@@ -183,11 +184,12 @@
         </table>
 </div>
 
-<div style="width: 50px;height: 50px; margin: 0 auto"><button id="sign" class="nes-btn" style="display: block; top:400px;width: 50px;height: 50px; margin: 0 auto" onclick="signIn()">SIGN IN</button></div>
+<div><button id="sign" class="nes-btn" style="margin: auto; width: 30%; padding: 10px; top: 400px; display: block;" onclick="signIn()">SIGN IN</button></div>
 <h2 id="onsign" style="display:block; margin-top: 20px; text-align: center;">
     <i class="nes-icon coin"></i><br></br>
-    <strong>COINSENDER</strong>  
+    <strong>COINSENDER</strong>
     <br></br>
+    <p style="font-size:12px; top:25px">This is pre-audited BETA version. Use at your own risk!</p>
     <br></br>
     <p style="font-size:18px;">Sign with NEAR to continue -></p>
 </h2>
