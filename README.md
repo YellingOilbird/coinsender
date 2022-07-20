@@ -103,30 +103,6 @@ near call $CONTRACT_ID send_from_balance_unsafe '{
           "amount": "'$ONE_TOKEN'"
         },
         {
-          "account_id": "learnclub.testnet",
-          "amount": "'$ONE_TOKEN'"
-        },
-        {
-          "account_id": "blaze.testnet",
-          "amount": "'$ONE_TOKEN'"
-        },
-        {
-          "account_id": "coldy.testnet",
-          "amount": "'$ONE_TOKEN'"
-        }
-    ],
-    "token_id": "'$REF'"
-}' --accountId $USER_ACCOUNT --depositYocto 1 --gas $GAS
-<<<<<<< Updated upstream
-near call $CONTRACT_ID view_transfer_statuses '' --accountId $CONTRACT_ID
-// unsafe - 13 Tgas / for many - 2+14 + 4n ( for 4 ~ 30Tgas)
-near call $CONTRACT_ID send_from_balance_unsafe '{
-    "accounts": [
-        {
-          "account_id": "participant_1.testnet",
-          "amount": "'$ONE_TOKEN'"
-        },
-        {
           "account_id": "participant_2.testnet",
           "amount": "'$ONE_TOKEN'"
         },
@@ -139,9 +115,9 @@ near call $CONTRACT_ID send_from_balance_unsafe '{
           "amount": "'$ONE_TOKEN'"
         }
     ],
-    "token_id": "'$P8'"
+    "token_id": "'$REF'"
 }' --accountId $USER_ACCOUNT --depositYocto 1 --gas $GAS
-// callbacked send - 19 Tgas / for many - 2+24 + 5n (for 4 ~50Tgas)
+
 near call $CONTRACT_ID send_from_balance '{
     "accounts": [
         {
