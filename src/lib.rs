@@ -1,5 +1,5 @@
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
-use near_sdk::collections::{UnorderedMap, LookupMap};
+use near_sdk::collections::UnorderedMap;
 use near_sdk::json_types::U128;
 use near_sdk::{assert_one_yocto, env, log, ext_contract, near_bindgen, AccountId, PromiseResult, Balance, PromiseOrValue, Promise};
 use near_sdk::serde::{Deserialize, Serialize};
@@ -12,29 +12,26 @@ mod user;
 mod utils;
 mod tokens;
 mod views;
-mod upgrade;
 mod web4;
 mod web4helper;
-
 
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct Contract {
     owner_id: Option<AccountId>,
-    user_vaults: LookupMap<AccountId, VVault>,
+    user_vaults: UnorderedMap<AccountId, VVault>,
     tokens: UnorderedMap<TokenContractId, WhitelistedToken>,
 }
 
 impl Default for Contract {
     fn default() -> Self {
-        Contract {
+        Self {
             owner_id: None,
-            user_vaults: LookupMap::new(StorageKey::UserDeposits),
-            tokens: UnorderedMap::new(StorageKey::WhitelistedTokens),
+            user_vaults: UnorderedMap::new(StorageKey::UserDeposits),
+            tokens: UnorderedMap::new(StorageKey::WhitelistedTokens)
         }
     }
 }
-
 
 #[near_bindgen]
 impl Contract {
@@ -71,9 +68,9 @@ impl Contract {
     #[payable]
     pub fn send_from_balance(&mut self, accounts: Vec<Operation>, token_id: Option<TokenContractId>) {
         assert_one_yocto();
-        //TODO - accounts chunks
+
         let account_id = env::predecessor_account_id();
-        assert!(self.user_vaults.contains_key(&account_id), "{}", ERR_UNKNOWN_USER);
+        assert!(self.user_vaults.get(&account_id).is_some() ,"{}", ERR_UNKNOWN_USER);
         let user_balance = self.get_deposit_by_token(account_id.clone(), token_id.clone()).0;
         let mut total = 0;
 
@@ -127,7 +124,7 @@ impl Contract {
         assert_one_yocto();
         //TODO - add vault update!!!
         let account_id = env::predecessor_account_id();
-        assert!(self.user_vaults.contains_key(&account_id), "{}", ERR_UNKNOWN_USER);
+        assert!(self.user_vaults.get(&account_id).is_some(), "{}", ERR_UNKNOWN_USER);
         let user_balance = self.get_deposit_by_token(account_id.clone(), token_id.clone()).0;
         let mut total = 0;
 
@@ -164,5 +161,52 @@ impl Contract {
             }
             self.internal_update_user_vault(UpdateVaultAction::AfterNewSend, account_id, None, None, Some(total_sended));
         }
+    }
+
+    /// Management
+
+    /// Using for call upgrade
+    #[allow(unused)]
+    pub(crate) fn assert_owner(&self) {
+        assert_eq!(
+            env::predecessor_account_id(),
+            self.get_owner(),
+            "{}", ERR_NOT_ALLOWED
+        );
+    }
+    /// Using for call internal methods
+    pub(crate) fn assert_owner_or_self(&self) -> bool {
+        env::predecessor_account_id() == env::current_account_id()
+            ||  env::predecessor_account_id() == self.get_owner()
+    }
+    /// Set owner for contract - by default is None
+    #[payable]
+    pub fn set_owner(&mut self, new_owner: AccountId) {
+        assert_one_yocto();
+        assert!(self.assert_owner_or_self(), "{}", ERR_NOT_ALLOWED);
+
+        self.owner_id = Some(new_owner);
+        log!("@{} Setting contract owner: @{} ", env::predecessor_account_id(), self.get_owner());
+    }
+    /// Get owner for contract - by default is None
+    pub fn get_owner(&self) -> AccountId {
+        if let Some(owner) = self.owner_id.clone() {
+            owner
+        } else {
+            panic!("{}", ERR_OWNER_NOT_SET)
+        }
+    }
+    #[payable]
+    /// Method to fill Account 
+    pub fn transfer_near_to_contract(&mut self) {
+        let attached_deposit = env::attached_deposit();
+        assert!(attached_deposit > 0, "ERR_NEGATIVE_DEPOSIT");
+        Promise::new(env::signer_account_id())
+                    .transfer(attached_deposit);
+        log!(
+            "@{} transfer {} yoctoNEAR to contract balance", 
+            env::signer_account_id(),
+            attached_deposit
+        )
     }
 }

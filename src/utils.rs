@@ -19,7 +19,6 @@ pub const CALLBACK_GAS: Gas = Gas(Gas::ONE_TERA.0 * 5);
 /// State errors
 #[allow(dead_code)]
 pub const ERR_EXCEEDED_OF_PREPAID_GAS: &str = "Too low gas attached";
-pub const ERR_STATE_NOT_INITIALIZED: &str = "State doesn't exists";
 /// Multisender errors
 pub const ERR_UNKNOWN_USER: &str = "User don't have any deposited tokens on Multisender balance";
 pub const ERR_TOKEN_NOT_WHITELISTED: &str = "Cannot find this token in whitelisted. You must whitelist this one before deposit";
@@ -40,7 +39,7 @@ pub (crate) enum StorageKey {
     TokenDeposits
 }
 //Transfer calls msg instructions
-pub enum TransferInstruction {
+pub (crate) enum TransferInstruction {
     Unknown,
     Default,
     Deposit,
@@ -66,7 +65,7 @@ pub struct Operation {
 }
 
 #[allow(dead_code)]
-pub fn is_promise_success() -> bool {
+pub (crate) fn is_promise_success() -> bool {
     assert_eq!(
         env::promise_results_count(),
         1,
@@ -78,11 +77,28 @@ pub fn is_promise_success() -> bool {
     }
 }
 #[allow(dead_code)]
-pub fn yocto_ft(yocto_amount: Balance, decimals: u8) -> u128 {
+pub (crate) fn yocto_ft(yocto_amount: Balance, decimals: u8) -> u128 {
     (yocto_amount + (5 * 10u128.pow((decimals - 1u8).into()))) / 10u128.pow(decimals.into())
 }
 #[allow(dead_code)]
-pub fn one_ft(decimals: u8) -> Balance {
+pub (crate) fn one_ft(decimals: u8) -> Balance {
     //1 FT is MIN_DEPOSIT
     10u128.pow((decimals).into())
+}
+
+pub (crate) fn unordered_map_pagination<K, V>(
+    m: &UnorderedMap<K, V>,
+    from_index: Option<u64>,
+    limit: Option<u64>,
+) -> Vec<K>
+    where
+        K: BorshSerialize + BorshDeserialize,
+        V: BorshSerialize + BorshDeserialize,
+{
+    let keys = m.keys_as_vector();
+    let from_index = from_index.unwrap_or(0);
+    let limit = limit.unwrap_or(keys.len());
+    (from_index..std::cmp::min(keys.len(), from_index + limit))
+        .map(|index| keys.get(index).unwrap())
+        .collect()
 }

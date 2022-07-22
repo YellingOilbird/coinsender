@@ -4,7 +4,7 @@ pub (crate) type WeightedBalance = (Balance, u8);
 pub const E24_DECIMALS:u8 = 24;
 
 /// User Account vault
-#[derive(BorshSerialize, BorshDeserialize)]
+#[derive(BorshSerialize, BorshDeserialize, Debug)]
 pub struct Vault {
     // amount of NEAR in user vault
     pub near_deposit: Balance,
@@ -44,7 +44,7 @@ impl From<Vault> for VaultOutput {
     }
 }
 
-#[derive(BorshSerialize, BorshDeserialize)]
+#[derive(BorshSerialize, BorshDeserialize, Debug)]
 pub enum VVault {
     Current(Vault)
 }
@@ -198,12 +198,13 @@ impl Contract {
 
     // withdraw all from multisender
     #[payable]
-    pub fn withdraw_all(&mut self, account_id: AccountId, token_id: Option<TokenContractId>) {
+    pub fn withdraw_all(&mut self, token_id: Option<TokenContractId>) {
         assert_one_yocto();
+        let account_id = env::predecessor_account_id();
         let deposit: u128 = self.get_deposit_by_token(account_id.clone(), token_id.clone()).into();
         // FT
         if let Some(unwrapped_token_id) = token_id {
-            assert!(self.user_vaults.contains_key(&account_id), "{}", ERR_UNKNOWN_USER);
+            assert!(self.user_vaults.get(&account_id).is_some(), "{}", ERR_UNKNOWN_USER);
             assert!(
                 deposit > NO_DEPOSIT,
                 "{}", ERR_NOTHING_TO_WITHDRAW
@@ -223,6 +224,10 @@ impl Contract {
             );
         // NEAR
         } else {
+            assert!(
+                deposit > NO_DEPOSIT,
+                "{}", ERR_NOTHING_TO_WITHDRAW
+            );
             Promise::new(account_id.clone()).transfer(deposit);
             self.internal_update_user_vault(
                 UpdateVaultAction::AfterWithdraw, 

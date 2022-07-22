@@ -227,7 +227,7 @@ impl Contract {
             );
         }
         for token in &vvault.tokens_used {
-            vault_used_tokens_response = format!("{}[ {} ]", 
+            vault_used_tokens_response = format!("{}[ {} ]\n", 
                 &vault_used_tokens_response,
                 token,
             );

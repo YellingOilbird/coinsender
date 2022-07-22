@@ -14,7 +14,7 @@ pub struct AccountBalance {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum Web4Pages {
-    Index,
+    _Index,
     Verify,
     Send
 }
