@@ -48,6 +48,7 @@ near deploy -f --wasmFile target/wasm32-unknown-unknown/release/coinsender.wasm 
 #### envs
 
 ```shell
+# testnet tokens
 export CONTRACT_ID=coinsender.testnet
 export AURORA=aurora.fakes.testnet
 export WETH=weth.fakes.testnet
@@ -59,6 +60,24 @@ export USN=usn.fakes.testnet
 export CHEDDAR=token-v3.cheddar.testnet
 export USDT=usdt.fakes.testnet
 export LNC=lnc.factory.tokenhub.testnet
+export REF=ref.fakes.testnet
+# mainnet tokens
+export USDT=dac17f958d2ee523a2206206994597c13d831ec7.factory.bridge.near
+export DAI=6b175474e89094c44da98b954eedeac495271d0f.factory.bridge.near
+export WNEAR=wrap.near
+export USN=usn.near
+export USDC=a0b86991c6218b36c1d19d4a2e9eb0ce3606eb48.factory.bridge.near
+export REF=token.v2.ref-finance.near
+export SKYWARD=token.skyward.near	
+export OCT=f5cfbc74057c610c8ef151a439252680ac68c6dc.factory.bridge.near
+export PARAS=token.paras.near
+export stNEAR=meta-pool.near	
+export WETH=c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2.factory.bridge.near
+export CHEDDAR=token.cheddar.near	
+export ETH=aurora
+export AURORA=aaaaaa20d9e0e2461697782ef11675f668207961.factory.bridge.near
+# accounts
+export OWNER=
 export USER_ACCOUNT=
 export USER_ACCOUNT2=
 export GAS=300000000000000
@@ -73,26 +92,34 @@ export ONE_TOKEN=1000000000000000000
 export FIVE_TOKENS=5000000000000000000
 export TEN_TOKENS=10000000000000000000
 ```
+```sh
+#set owner
+near call $CONTRACT_ID set_owner '{"new_owner":"'$OWNER'"}' --accountId $CONTRACT_ID --gas $GAS --depositYocto 1
+```
 
 #### tokens
 ```shell
-near call $CONTRACT_ID whitelist_token '{"token_id": "'$LNC'"}' --accountId $CONTRACT_ID --depositYocto 1 --gas $GAS
-near call $CONTRACT_ID remove_token '{"token_id": "'$REF'"}' --accountId $CONTRACT_ID  --gas $GAS
-near call $CONTRACT_ID get_whitelisted_tokens '' --accountId $CONTRACT_ID
+# private
+near call $CONTRACT_ID whitelist_token '{"token_id": "'$AURORA'"}' --accountId $OWNER --depositYocto 1 --gas $GAS #or call from CONTRACT_ID
+near call $CONTRACT_ID remove_token '{"token_id": "'$REF'"}' --accountId $CONTRACT_ID  --gas $GAS                 #or call from OWNER
+# public view
+near call $CONTRACT_ID get_whitelisted_tokens '' --accountId $USER_ACCOUNT
 ```
 #### vault
 ```shell
 near call $CONTRACT_ID deposit_near '' --accountId $USER_ACCOUNT --amount 2 --gas $GAS
-near call $LNC ft_transfer_call '{"receiver_id":"'$CONTRACT_ID'","amount": "'$ONE_TOKEN'", "msg":"deposit"}' --accountId $USER_ACCOUNT --depositYocto 1 --gas $GAS
-near call $REF ft_transfer_call '{"receiver_id":"'$CONTRACT_ID'","amount": "'$HUNDRED_TOKENS'", "msg":"deposit"}' --accountId $USER_ACCOUNT --depositYocto 1 --gas $GAS
-//TODO FIX WITHDRAW TO PREDECCESSOR
-near call $CONTRACT_ID withdraw_all '{
-  "account_id":"'$USER_ACCOUNT'"
-} ' --accountId $USER_ACCOUNT --depositYocto 1 --gas $GAS
+# E18 decimals use accurate!
+near call $REF ft_transfer_call '{"receiver_id":"'$CONTRACT_ID'","amount": "'$TEN_TOKENS'", "msg":"deposit"}' --accountId $USER_ACCOUNT --depositYocto 1 --gas $GAS
+# E18 decimals use accurate!
+near call $LNC ft_transfer_call '{"receiver_id":"'$CONTRACT_ID'","amount": "'$TEN_TOKENS'", "msg":"deposit"}' --accountId $USER_ACCOUNT2 --depositYocto 1 --gas $GAS
+# Withdraw all ( in case NEAR withdraw no args for function call)
+near call $CONTRACT_ID withdraw_all '{"token_id":"'$LNC'"}' --accountId $USER_ACCOUNT2 --depositYocto 1 --gas $GAS # FT
+near call $CONTRACT_ID withdraw_all '' --accountId $USER_ACCOUNT2 --depositYocto 1 --gas $GAS # NEAR
 
 #view
-near call $CONTRACT_ID get_deposit_by_token '{"account_id": "'$USER_ACCOUNT'", "token_id":"'$REF'"}' --accountId $CONTRACT_ID
-near call $CONTRACT_ID get_user_vault '{"account_id": "'$USER_ACCOUNT'"}' --accountId $CONTRACT_ID
+near call $CONTRACT_ID get_deposit_by_token '{"account_id": "'$USER_ACCOUNT'", "token_id":"'$REF'"}' --accountId $USER_ACCOUNT
+near call $CONTRACT_ID get_user_vault '{"account_id": "'$USER_ACCOUNT'"}' --accountId $USER_ACCOUNT
+near call $CONTRACT_ID get_user_accounts '{}' --accountId $USER_ACCOUNT
 ```
 #### SEND !!!
 ```shell
@@ -121,8 +148,8 @@ near call $CONTRACT_ID send_from_balance_unsafe '{
 near call $CONTRACT_ID send_from_balance '{
     "accounts": [
         {
-          "account_id": "participant_1.testnet",
-          "amount": "'$ONE_TOKEN'"
+          "account_id": "rmlsnk.testnet",
+          "amount": "'$FIVE_TOKENS'"
         },
         {
           "account_id": "participant_2.testnet",
@@ -133,7 +160,7 @@ near call $CONTRACT_ID send_from_balance '{
           "amount": "'$ONE_TOKEN'"
         }
     ],
-    "token_id": "'$P8'"
-}' --accountId $USER_ACCOUNT --depositYocto 1 --gas $GAS
+    "token_id": "'$LNC'"
+}' --accountId $USER_ACCOUNT2 --depositYocto 1 --gas $GAS
 
 ```

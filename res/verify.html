@@ -52,23 +52,67 @@
             const sign_button = document.getElementById('sign');
             const deposit_button = document.getElementById("button_deposit");
             const send_button = document.getElementById("button_send");
+
+            const storage_button = document.getElementById("button_storage");
+            const storage_explain = document.getElementById("storage-explain");
+
             const deposit_area = document.getElementById('deposit-container');
+
+            const transition = localStorage.getItem("transition");
             const need_to_deposit = localStorage.getItem('need_to_deposit');
             const need_to_send = localStorage.getItem('need_to_send');
-            const acc_area = document.getElementById('acc-area');
+            const need_to_fund = Number(localStorage.getItem('need_to_fund'));
 
-            if (wallet.isSignedIn()) {
+            const acc_area = document.getElementById('acc-area');
+            const textarea_accounts = document.getElementById('accounts');
+
+            // button props
+            const width_small = screen.width * 0.2;
+            const width = screen.width * 0.25;
+            const width_large = screen.width * 0.27;
+
+            vefify_button.style.width =  width_small + "px";
+            clear_button.style.width =  width_small + "px";
+            sign_button.style.width =  width + "px";
+            deposit_button.style.width =  width_large + "px";
+            send_button.style.width =  width_large + "px";
+            textarea_accounts.style.width = width_large + 'px';
+            storage_button.style.width = width_large + 'px';
+
+            if (!wallet.isSignedIn()) {
                 sign_button.style.display = 'block';
                 vefify_button.style.display = 'none';
                 deposit_area.style.display = 'none';
                 acc_area.style.display = 'none';
             }
 
-            if (!wallet.isSignedIn()) {
+            if (wallet.isSignedIn()) {
                 GetSelectedTokenId();
                 
                 console.log(`on load need_to_deposit: ${need_to_deposit}`);
                 console.log(`on load need_to_send: ${need_to_send}`);
+                console.log(`on load need_to_fund: ${need_to_fund}`);
+
+                if (transition === "1" || transition > 0) {
+                    setDepositParameters();
+                    console.log("--dep--");
+                    //disable verify
+                    vefify_button.style.display = 'none';
+                    var verfs = document.getElementsByClassName('verify');
+                    Array.from(verfs).forEach((el) => {
+                        if (el.style.display != 'none') {
+                            el.style.display = 'none';
+                        }
+                    });
+                    //enable deposit
+                    var deps = document.getElementsByClassName('deposit');
+                    Array.from(deps).forEach((el) => {
+                        if (el.style.display == 'none') {
+                            el.style.display = 'block';
+                        }
+                    });
+                    //window.reload();
+                }
 
                 if (need_to_send !== null && need_to_deposit === null) {
                     // only send available
@@ -90,7 +134,7 @@
                         }
                     });
                 }
-
+                
                 if (need_to_deposit !== null && need_to_send === null) {
                     // only deposit available
                     sign_button.style.display = 'none';
@@ -106,22 +150,69 @@
                     });
                     var deps = document.getElementsByClassName('deposit');
                     Array.from(deps).forEach((el) => {
-                        if (el.style.display != 'none') {
-                            el.style.display = 'none';
+                        if (el.style.display == 'none') {
+                            el.style.display = 'block';
                         }
                     });
                 }
                 
                 if (need_to_deposit === null && need_to_send === null) {
-                    sign_button.style.display = 'none';
-                    vefify_button.style.display = 'block';
-                    clear_button.style.display = 'block';
+                    if (need_to_fund > 0) {
+                        // ENABLE INFO 
+                        sign_button.style.display = 'none';
+                        vefify_button.style.display = 'none';
+                        clear_button.style.display = 'none';
+                        // enable storage
+                        var strg = document.getElementsByClassName('storage');
+                            Array.from(strg).forEach((el) => {
+                                if (el.style.display == 'none') {
+                                    el.style.display = 'block';
+                                }
+                            });
+                        storage_button.style.display = 'block';
+                        storage_explain.style.display = 'block';
+                        storage_explain.innerText = 'Number of remaining unregistered users: '+need_to_fund+".\n Click one more time on CHECK STORAGE to register next account group. Check progress on redirected approval transaction page!";
+                        storage_button.innerText = 'REGISTER ACCOUNTS';
+                        // disable verify
+                        var verfs = document.getElementsByClassName('verify');
+                            Array.from(verfs).forEach((el) => {
+                                if (el.style.display != 'none') {
+                                    el.style.display = 'none';
+                                }
+                            });
+                    } else {
+                        sign_button.style.display = 'none';
+                        vefify_button.style.display = 'block';
+                        clear_button.style.display = 'block';
+                    }
                 }
 
                 const accounts = localStorage.getItem("operations");
                 const obj = JSON.parse(accounts);
                 const pretty = JSON.stringify(obj, undefined, 4);
-                document.getElementById("accounts").value = pretty;
+
+                textarea_accounts.value = pretty;
+
+                if (deposit_button.style.display == 'block') {
+                    // only deposit available
+                    sign_button.style.display = 'none';
+                    vefify_button.style.display = 'none';
+                    clear_button.style.display = 'none';
+                    deposit_button.style.display = 'block';
+                    send_button.style.display = 'none';
+                    var verfs = document.getElementsByClassName('verify');
+                    Array.from(verfs).forEach((el) => {
+                        if (el.style.display != 'none') {
+                            el.style.display = 'none';
+                        }
+                    });
+                    var deps = document.getElementsByClassName('deposit');
+                    Array.from(deps).forEach((el) => {
+                        if (el.style.display == 'none') {
+                            el.style.display = 'block';
+                        }
+                    });
+                }
             }
         }
 
@@ -217,6 +308,19 @@
         // set token_id to field from local storage
         function GetSelectedTokenId() {
             document.getElementById("token").innerHTML = localStorage.getItem("token_ticker"); 
+        }
+        function goHome() {
+            localStorage.removeItem("operations");
+            localStorage.removeItem("vault");
+            localStorage.removeItem("total");
+            localStorage.removeItem("token_id");
+            localStorage.removeItem("token_ticker");
+            localStorage.removeItem("token_decimals");
+            localStorage.removeItem("need_to_fund");
+            localStorage.removeItem("need_to_send");
+            localStorage.removeItem("need_to_deposit");
+            localStorage.removeItem("transition");
+            window.location.href = "https://coinsender.testnet.page/";
         }
         // NEAR
         async function getNearApi() {
@@ -353,70 +457,122 @@
 
         async function checkStorage() {
             await this.getContracts().then(async (config) =>  {
-                console.log(localStorage);
-                let contract = config.contract;
-                let contractFT = config.contractFT;
-                let operations = JSON.parse(localStorage.getItem("operations"));
-                let checkedAccounts = Object.keys(operations);
-                
-              if (checkedAccounts.length > 0) {
+              console.log(localStorage);
+              let contract = config.contract;
+              let contractFT = config.contractFT;
+              let operations = JSON.parse(localStorage.getItem("operations"));
+              let checkedAccounts = Object.keys(operations);
 
-                const groupSize = 30;
-                let groupIndex = -1;
-                let accountGroups = [];
-                let total_already_registered = 0;
-                let fundedAccounts = [];
-                for (let i = 0; i < checkedAccounts.length; i++) {
-                    if (i % groupSize === 0) {
-                        groupIndex++;
-                        accountGroups[groupIndex] = [];
+              // get massive of chunked accounts
+              let chunksAccountsFunded = async() => {
+
+                if (checkedAccounts.length > 0) {
+                    const groupSize = 20;
+                    let groupIndex = -1;
+                    let accountGroups = [];
+                    let total_already_registered = 0;
+                    let fundedAccounts = [];
+                    for (let i = 0; i < checkedAccounts.length; i++) {
+                        if (i % groupSize === 0) {
+                            groupIndex++;
+                            accountGroups[groupIndex] = [];
+                        }
+                        accountGroups[groupIndex].push(checkedAccounts[i])
                     }
-                    accountGroups[groupIndex].push(checkedAccounts[i])
-                }
-                let index = 0;
-                // StorageBalance retrieve
-                while (index < accountGroups.length) {
-                    let storageCheckAccountGroup = async () => {
-                        return await Promise.all(accountGroups[index].map(async account => {
-                            let registered = await contractFT.storage_balance_of({account_id: account});
-                            if (registered) {
-                                total_already_registered += 1;
-                                console.log("Registered account: " + account);
+                    let index = 0;
+                      // StorageBalance retrieve
+                      while (index < accountGroups.length) {
+                        let storageCheckAccountGroup = async () => {
+                            return await Promise.all(accountGroups[index].map(async account => {
+                                let registered = await contractFT.storage_balance_of({account_id: account});
+                                if (registered) {
+                                    total_already_registered += 1;
+                                    console.log("Registered account: " + account);
+                                } else {
+                                    return account
+                                }
+                            }));
+                        }
+                        await storageCheckAccountGroup().then((nonFundedAccounts) => {
+                            Object.values(nonFundedAccounts).map(account => {
+                                if (account) {
+                                    console.log(account);
+                                    fundedAccounts.push(account);
+                                }
+                            });
+                            index++;
+                        })
+                      }//end of while loop
+                            // If we got some non funded accounts collect them
+                            localStorage.setItem("need_to_fund", Number(fundedAccounts.length));
+                            let fundedAccountsChunks = [];
+                            
+                            if (fundedAccounts.length > 0) {
+                              if (fundedAccounts.length > groupSize) {
+                                fundedAccountsSlice = fundedAccounts.slice(0, groupSize);
+                                fundedAccountsChunks.push(fundedAccountsSlice);
+                                console.log("sliced+: "+fundedAccountsSlice.length+" accs : ",fundedAccountsChunks);
+                              } else {
+                                fundedAccountsChunks.push(fundedAccounts);
+                                console.log("sliced-: "+fundedAccounts.length+" accs : ",fundedAccountsChunks);
+                              }
+                            // Go to deposit if no more accounts to fund 
                             } else {
-                                return account
+                              fundedAccountsChunks = [];
                             }
-                        }));
+                        return fundedAccountsChunks;
+                    }//if we have any accounts
+                    else {
+                        window.alert("ERR_NO_ACCOUNTS. Check browser console for more info!").then(
+                            goHome()
+                        );
                     }
-                    await storageCheckAccountGroup().then((nonFundedAccounts) => {
-                        Object.values(nonFundedAccounts).map(account => {
-                            if (account) {
-                                fundedAccounts[account] = operations[account];
-                            }
-                        });
-                    }).then(
-                      await new Promise((res, _rej) => {
-                        if (fundedAccounts.length > 0) {
-                            let total_funded_required = bigInt(fundedAccounts.length).multiply(bigInt("1250000000000000000000"));
-                            contract.multi_storage_deposit({
-                                accounts: fundedAccounts,
+              }// end chunkSlicer fn
+
+
+              // processing slices from chunk
+              await chunksAccountsFunded().then((async (fundedAccountsChunks) => {
+                //unneccesary double checks for a while
+                const i = 0;
+                if (fundedAccountsChunks.length > 0) {
+                  console.log("______accs_____",fundedAccountsChunks[i].length);
+                  console.log("[]...[]length :",fundedAccountsChunks.length);
+                  const groupSize = 20;
+                  // N accounts
+
+                    // here comes [] massive[accounts](N)
+                    // need to fund = N (groupSize or groupSize >= last chunk >=0)
+                    if (fundedAccountsChunks[i].length <= groupSize) {
+                        let total_funded_required = bigInt(fundedAccountsChunks[i].length).multiply(bigInt("1250000000000000000000")).toString();
+                        contract.multi_storage_deposit({
+                                accounts: fundedAccountsChunks[i],
                                 token_id: token_id
-                            }, gas, total_funded_required);
-                            console.log("storage chunk produced");
+                            }, gas, total_funded_required
+                        );
+                        console.log("processed"+ fundedAccountsChunks[i] +"accounts");
+                        let ntf = localStorage.getItem("need_to_fund");
+                        localStorage.setItem("need_to_fund", Number(ntf - fundedAccountsChunks[i].length));
+
+                        if (Number(ntf - fundedAccountsChunks[i].length) === 0) {
+                            localStorage.setItem("transition", Number(1));
+                            console.log("fin");
                         }
-                        else {
-                            setDepositParameters();
-                        }
-                      })
-                    );
-                    index++;
+    
+                    } else {
+                        console.log("SOMETHING WRONG WITH SLICES! see slice in console! \n");
+                    }
+                } else {
+                    console.log("set");
+                    setDepositParameters();
                 }
-                console.log(`FUNDED:${fundedAccounts}`);
-              } else {
-                    window.alert("ERR_NO_ACCOUNTS!").then(
-                        window.location.reload()
-                    );
-                }
+
+              }));
+
             });
+        }
+
+        function goVault() {
+            window.location.href = `https://${contractName}.page/processing/finality/${wallet.getAccountId()}`
         }
 
         async function setDepositParameters() {
@@ -442,7 +598,7 @@
                         let app_balance_converted = ConvertToYocto(app_balance, decimals).toString();
                         need_to_deposit = bigInt(amount).minus(bigInt(app_balance_converted));
                     }
-                    let need_to_deposit_int = Math.round(bigInt(need_to_deposit).divide(bigInt(Math.pow(10, decimals))));
+                    let need_to_deposit_int = Number(bigInt(need_to_deposit).divide(bigInt(Math.pow(10, (decimals))))).toFixed(1);
                     console.log("need_to_deposit_int", need_to_deposit_int);
 
                     localStorage.setItem("need_to_deposit", need_to_deposit.toString());
@@ -564,12 +720,12 @@
             <div class="nav-buttons" style="margin-right: auto; box-sizing: border-box;">
                 <button onclick="goHome()" class="nes-btn is-error">Home</button>
                 <button onclick="goVault()" class="nes-btn">Vault</button>
-                <button onclick="goVault()" class="nes-btn is-success">Upload CSV</button>
+                <button onclick="goVault()" class="nes-btn is-disabled">Upload CSV</button>
             </div>
 
             <div class="nav-buttons" style="margin-top: auto; box-sizing: border-box;">
                 <div style="height: 30px; margin-bottom: 10px; right: 0;">
-                  <p style="font-size: small; color: whitesmoke; text-align: right;">APP DEPOSIT</p>
+                  <p style="font-size: x-small; color: whitesmoke; text-align: right;">APP DEPOSIT</p>
                 </div>
                 <div class="nes-badge is-icon">
                   <span class="is-dark">$$$</span>
@@ -594,6 +750,7 @@
             </p>
             <p class="storage" style="font-family: monospace; display: none;">
                 <strong>Every fungible token except USN needs registered storage balance in token contract (0.00125 NEAR). When you click at CHECK STORAGE button we check this for all recipients and redirect you to approve storage registration for non-registered receiver(s)</strong>
+                <p id="storage-explain" style="font-family: monospace; display: none;"></p>
             </p>
             <p class="verify" style="font-family:monospace; display: block;">
                 <strong>Verify accounts to delete incorrect ones</strong>
@@ -630,7 +787,7 @@
                 <button id="button_storage" class="nes-btn" onclick="checkStorage()" style="margin: auto; width: 30%; padding: 10px; top: 10px; display: none;">CHECK STORAGE</button>
                 <button id="button_deposit"  class="nes-btn is-success" style="margin: auto; width: 30%; padding: 10px; top: 10px; display: none;" onclick="depositTokens()">DEPOSIT</button>
                 <button id="verify" class="nes-btn" style="margin: auto; width: 30%; padding: 10px; top: 10px; display: none;" onclick="verifyAccounts()">VERIFY</button>
-                <button id="clear" class="nes-btn is-warning" style="margin: auto; width: 45%; padding: 10px; top: 10px; display: none;" onclick="clearAccounts()">CLEAR ACCOUNTS</button>
+                <button id="clear" class="nes-btn is-warning" style="margin: auto; width: 30%; padding: 10px; top: 10px; display: none;" onclick="clearAccounts()">CLEAR ACCOUNTS</button>
                 <button id="sign" class="nes-btn" style="margin: auto; width: 30%; padding: 10px; top: 10px; display: block;" onclick="signIn()">SIGN IN</button>
             </div>
           </section>
@@ -641,7 +798,7 @@
     <div id="acc-area" class="nes-container with-title" style="text-align:center; top: 30px; display: block;">
         <h3 class="title" style="margin-bottom: 20px;">account, amount</h3>
         <textarea
-            style="min-width: 500px; min-height: 500px; font-family:system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;"
+            style="width: 50%; font-family:system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;"
             id="accounts"
             class="nes-textarea"
             oninput='this.style.height = ""; this.style.height = this.scrollHeight + "px"'
