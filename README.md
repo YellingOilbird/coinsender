@@ -1,4 +1,4 @@
-![](./contract/common/assets/coinsender_logo.png)
+<a href="url"><img src="./contract/common/assets/coinsender_logo.png" height="48" width="48" ></a>
 
 # 💸 COINSENDER 💸 
 
