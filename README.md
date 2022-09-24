@@ -1,8 +1,8 @@
-<a href="url"><img src="./contract/common/assets/coinsender_logo.png" height="48" width="48" ></a>
-
-# 💸 COINSENDER 💸 
-
-Send Fungible Tokens to several recipients with one single transaction
+<p align="center">
+    <img src="./contract/common/assets/coinsender_logo.png" align="middle" height="280" width="280">
+    <h1 align="center">C O I N S E N D E R</h1>
+    <h2 align="center">send fungible tokens to several recipients with one single transaction</h2>
+</p>
 
 ### links:
 https://coinsender.testnet.page - testnet (web4)  
