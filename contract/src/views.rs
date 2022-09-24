@@ -9,33 +9,27 @@ impl Contract {
             let token_data = tokens.get(&token_id).expect(ERR_TOKEN_NOT_WHITELISTED);
             result.push((token_id, token_data));
         };
-        log!("on_wl_token");
         result
     }
+
     pub fn get_user_vault(&self, account_id: AccountId) -> VaultOutput {
-        let vault = self.internal_get_user_vault(&account_id);
+        let vault = self.internal_get_vault(&account_id);
         VaultOutput::from(vault)
     }
+
     /// Get user deposit by token contract. If calls without token_id returns NEAR deposit value
-    pub fn get_user_deposit_by_token(&self, token_id: Option<TokenContractId>) -> U128 {
-        let account_id: AccountId = env::predecessor_account_id();
-        let vault = self.internal_get_user_vault(&account_id);
-        if let Some(unwrapped_token_id) = token_id {
-            match vault.token_deposits.get(&unwrapped_token_id) {
-                Some((deposit, _)) => {
-                    deposit.into()
-                }
-                None => {
-                    0.into()
-                }
-            }
-        } else {
-            vault.near_deposit.into()
-        }
+    pub fn get_user_deposit_by_token(&self, account_id: AccountId, token_id: Option<TokenContractId>) -> U128 {
+        let vault = self.internal_get_vault_or_create(&account_id);
+        vault.get_deposit_by_token(token_id)
     }
+
     /// Get active users list
     pub fn get_user_accounts(&self, from_index: Option<u64>, limit: Option<u64>) -> Vec<AccountId> {
         let accounts = &self.user_vaults;
         unordered_map_pagination(accounts, from_index, limit)
     } 
+
+    pub fn get_donate_destinations(&self) -> Vec<AccountId> {
+        self.donate_receivers.clone()
+    }
 }

@@ -46,18 +46,18 @@ pub (crate) fn parse_user_and_token_ids(path: String, web4_page: Web4Pages) -> A
 
 #[test]
 fn test_parse_acc_token() {
-    let path = Some("/processing/send/ft/token.testnet/account.testnet".to_string()).unwrap();
+    let path = Some("/processing/send/ft/token.near/account.near".to_string()).unwrap();
     let accounts = parse_user_and_token_ids(path, Web4Pages::Send);
     let expected:AccountBalance = AccountBalance { 
-        user: AccountId::new_unchecked("account.testnet".into()), 
-        token_id: AccountId::new_unchecked("token.testnet".into()),
+        user: AccountId::new_unchecked("account.near".into()), 
+        token_id: AccountId::new_unchecked("token.near".into()),
     };
     assert_eq!(accounts, expected);
-    let path = Some("/processing/verify/ft/token.testnet/account.testnet".to_string()).unwrap();
+    let path = Some("/processing/verify/ft/token.near/account.near".to_string()).unwrap();
     let accounts = parse_user_and_token_ids(path, Web4Pages::Verify);
     let expected:AccountBalance = AccountBalance { 
-        user: AccountId::new_unchecked("account.testnet".into()), 
-        token_id: AccountId::new_unchecked("token.testnet".into()),
+        user: AccountId::new_unchecked("account.near".into()), 
+        token_id: AccountId::new_unchecked("token.near".into()),
     };
     assert_eq!(accounts, expected);
 }

@@ -25,7 +25,7 @@
         }
         td {
             text-align: center;
-            min-width: 150px
+            width: 10%;
         }
         th {
             text-align: center;
@@ -65,16 +65,22 @@
             const send_button = document.getElementById("button_send_unsafe");
             const explain = document.getElementById("send_explain");
             const textarea_accounts = document.getElementById('accounts_finality');
-
+            const vvault_area = document.getElementById('vvault');
+            const tds = document.getElementsByTagName('td');
+            
             // button props
             const width_small = screen.width * 0.2;
             const width = screen.width * 0.25;
             const width_large = screen.width * 0.3;
+            const width_largest = screen.width * 0.5;
 
             withdraw_button.style.width =  width_small + "px";
             send_button.style.width =  width + "px";
             textarea_accounts.style.width = width_large + 'px';
-
+            vvault_area.style.width = width_largest + 'px';
+            Array.from(tds).forEach((el) => {
+                el.style.width = width_largest / 4 + 'px';
+            });
 
 
             GetSelectedTokenId();
@@ -103,31 +109,31 @@
                 let app_balance = document.getElementById("deposit").innerText.split(' ');
                 app_balance = parseInt(app_balance[0]);
 
-                if (Number(app_balance) === 0) {
-                    window.alert("SEND COMPLETE! CLICK 'OK' TO SEE YOUR VAULT!");
-                    //localStorage.setItem("vault", true);
-                    window.location.href = `https://${contractName}.page/processing/finality/${wallet.getAccountId()}`;
-                }
+                // if (app_balance[0] === 0) {
+                //     window.alert("COMPLETE! CLICK 'OK' TO SEE YOUR VAULT!");
+                //     //localStorage.setItem("vault", true);
+                //     window.location.href = `https://${contractName}.page/processing/finality/${wallet.getAccountId()}`;
+                // }
 
-                if (remaining_accounts === 0) {
+                if (remaining_accounts === 0 && accountsRaw.length === 0 ) {
                     send_button.style.display = 'none';
                 } else {
                     if (remaining_accounts === null) {
                         console.log("remaining_accounts = null : "+remaining_accounts);
                         console.log("recipients = : "+accountsRaw.length);
-                        explain.innerText = 'Number of remaining recepients users: '+ accountsRaw.length +".\n Click one more time on SEND to send to next account group (25 accounts). Check progress on redirected approval transaction page!";
+                        explain.innerText = 'Number of remaining recepients: '+ accountsRaw.length +".\n Click one more time on SEND to send to next account group (25 accounts). Check progress on redirected approval transaction page!";
                         send_button.innerText = 'SEND TO '+ accountsRaw.length +' ACCOUNTS';
                     } else {
                         if (remaining_accounts < 25) {
                             console.log("remaining_accounts < 25 : "+remaining_accounts);
                             console.log("recipients = : "+accountsRaw.length);
                             send_button.innerText = 'SEND TO NEXT '+ remaining_accounts +' ACCOUNTS';
-                            explain.innerText = 'Number of remaining recepients users: '+ remaining_accounts +".\n Click one more time on SEND to send to last account group. Check progress on redirected approval transaction page!";
+                            explain.innerText = 'Number of remaining recepients: '+ remaining_accounts +".\n Click one more time on SEND to send to last account group. Check progress on redirected approval transaction page!";
                         } else {
                             console.log("remaining_accounts > 25 : "+remaining_accounts);
                             console.log("recipients = : "+accountsRaw.length);
                             send_button.innerText = 'SEND TO NEXT '+ 25 +' ACCOUNTS';
-                            explain.innerText = 'Number of remaining recepients users: '+ remaining_accounts +".\n Click one more time on SEND to send to next account group (25 accounts). Check progress on redirected approval transaction page!";
+                            explain.innerText = 'Number of remaining recepients: '+ remaining_accounts +".\n Click one more time on SEND to send to next account group (25 accounts). Check progress on redirected approval transaction page!";
                         }
                     }
                 }
@@ -350,7 +356,7 @@
                         throw e
                     } finally {
                         alert(
-                            "SEND COMPLETE! ENJOY STATS! Click OK"
+                            "COMPLETE! ENJOY STATS! Click OK"
                         )
                         var elems = document.getElementsByClassName('data');
                         Array.from(elems).forEach((el) => {
@@ -487,7 +493,7 @@
                     );
                 } finally {
                     alert(
-                            "WITHDRAW COMPLETE! ENJOY STATS!\n" +
+                            "COMPLETE! ENJOY STATS!" +
                             "click OK" +
                             e.toString()
                         )
@@ -574,9 +580,9 @@
 
 <!-- vault data -->
 <div id ="vvault" style="margin: auto; height: 100%; text-align:center; display:none; top:20px">
-    <div class="nes-container" style="top:100px; border:0">
+    <div class="nes-container" style="top:150px; border:0">
     <h3 style="margin-bottom: 20px;">current user vault</h3>
-        <table style="margin: auto; top:10px; width: 30%; border: 0; font-family: monospace;">
+        <table style="margin: auto; top:10px; width: 100%; border: 0; font-family: monospace;">
            <!--%USERVAULT%-->
             <thead>
                 <h3 style="text-align:center; margin-bottom: 10px;">🏧 User Vault 🏧</h3>

@@ -1,6 +1,0 @@
-/// TODO - chunks from send to accounts area. Let user see remaining accounts.
-
-/// TODO - csv Upload
-
-/// TODO - unregister if deposit 0, remove vault. 
-/// If user keep at least 1 token he can left at sender stats

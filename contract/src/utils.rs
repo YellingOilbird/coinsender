@@ -1,4 +1,5 @@
 use crate::*;
+use near_sdk::ONE_NEAR;
 use near_sdk::serde::{Deserialize, Serialize};
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::{env, AccountId, Balance, BorshStorageKey, Gas, PromiseResult, json_types::U128};
@@ -29,6 +30,8 @@ pub const ERR_OWNER_NOT_SET: &str = "Contract doesn't have an owner right now";
 pub const ERR_FAILED_DEPOSIT_TRANSFER: &str = "Something wrong with transfer call from you to token contract. Check your balances";
 pub const ERR_FAILED_PROMISE: &str = "Promise failed! Expected single result of callback!";
 
+pub const TREASURY_LIMIT:Balance = 100 * ONE_NEAR;
+
 pub (crate) type TokenContractId = AccountId;
 
 //StorageKey implementation for Default prefixes in Multisender contract
@@ -36,7 +39,8 @@ pub (crate) type TokenContractId = AccountId;
 pub (crate) enum StorageKey {
     WhitelistedTokens,
     UserDeposits,
-    TokenDeposits
+    TokenDeposits,
+    TokensSended
 }
 //Transfer calls msg instructions
 pub (crate) enum TransferInstruction {
@@ -100,5 +104,14 @@ pub (crate) fn unordered_map_pagination<K, V>(
     let limit = limit.unwrap_or(keys.len());
     (from_index..std::cmp::min(keys.len(), from_index + limit))
         .map(|index| keys.get(index).unwrap())
+        .collect()
+}
+
+pub (crate) fn make_view_token_deposits(map: UnorderedMap<AccountId, Balance>) -> Vec<(AccountId, U128)> {
+    map.to_vec()
+        .iter()
+        .map(|(acc, bal)|{
+            (acc.clone(), U128(*bal))
+        })
         .collect()
 }

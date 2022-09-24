@@ -80,7 +80,7 @@ impl Contract {
         }
 
         // Only NEAR
-        // "/processing/verify/NEAR/user.testnet"
+        // "/processing/verify/NEAR/user.near"
         // index.html => verify.html
         if path.starts_with("/processing/verify/NEAR/") {
             let user_id = AccountId::from_str(&path[24..]).expect("ERR_INVALID_ACCOUNT_ID");
@@ -97,7 +97,7 @@ impl Contract {
                 .replace("%BALANCE%", &user_balance_formatted)
             )
         }
-        // "/processing/send/NEAR/user.testnet"
+        // "/processing/send/NEAR/user.near"
         // verify.html => main.html (for send)
         if path.starts_with("/processing/send/NEAR/") {
             let user_id = AccountId::from_str(&path[22..]).expect("ERR_INVALID_ACCOUNT_ID");
@@ -119,7 +119,7 @@ impl Contract {
         }
 
         // Only FT
-        // "/processing/verify/ft/token.testnet/user.testnet"
+        // "/processing/verify/ft/token.near/user.near"
         // index.html => verify.html
         if path.starts_with("/processing/verify/ft/") {
             let parsed_accounts: AccountBalance = parse_user_and_token_ids(path, Web4Pages::Verify);
@@ -141,7 +141,7 @@ impl Contract {
             )
         }
 
-        // "/processing/send/ft/token.testnet/user.testnet"
+        // "/processing/send/ft/token.near/user.near"
         // verify.html => main.html (for send)
         if path.starts_with("/processing/send/ft/") {
             let parsed_accounts: AccountBalance = parse_user_and_token_ids(path, Web4Pages::Send);
@@ -166,7 +166,7 @@ impl Contract {
             )
         }
 
-        // "/processing/finality/user.testnet"
+        // "/processing/finality/user.near"
         // after success send to Vault stats
         // Works good, but hides on web page for a while
         if path.starts_with("/processing/finality/") {
@@ -196,7 +196,7 @@ impl Contract {
             app_html = replace_brackets(app_html);
             // supported tokens to select. HTML:
             // <option value='NEAR:24:NEAR'>NEAR</option>
-            // <option value='ft_account.testnet:24:FT'>FT</option>
+            // <option value='ft_account.near:24:FT'>FT</option>
             select_options = format!("{}<option value='{}:{}:{}''>{}</option>", 
                 &select_options,
                 account_id.clone(),
@@ -220,10 +220,10 @@ impl Contract {
         let mut vault_used_tokens_response = "".to_string();
         let vvault = self.get_user_vault(account_id);
         for (account, balance) in &vvault.token_deposits {
-            vault_token_balances_response = format!("{}{}:{} <i class='nes-icon coin is-small'></i>", 
+            vault_token_balances_response = format!("{}{}:{:?} <i class='nes-icon coin is-small'></i>", 
                 &vault_token_balances_response,
                 self.get_token_ticker(account.clone()),
-                balance.to_string(),
+                balance,
             );
         }
         for token in &vvault.tokens_used {
@@ -233,10 +233,10 @@ impl Contract {
             );
         }
         //<tr><td>{}</td><td>{}</td><td>{}</td><td></td><td>{}</td></tr></td></tr>
-        vault_response = format!("{}<tr><td>{}</td><td>{}</td><td>{}</td><td></td><td>{}</td></tr></td></tr>", 
+        vault_response = format!("{}<tr><td>{}</td><td>{:?}</td><td>{}</td><td></td><td>{}</td></tr></td></tr>", 
             &vault_response,
             vvault.near_sends_num.to_string(),
-            vvault.total_near_amount_sent.to_string(),
+            vvault.total_near_amount_sent,
             &vault_used_tokens_response,
             &vault_token_balances_response
         );

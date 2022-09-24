@@ -1,9 +1,11 @@
+![](./contract/common/assets/coinsender_logo.png)
+
 # COINSENDER 💸 
 #### see user vault web4 example on https://coinsender.testnet.page/processing/finality/rmlsnk.testnet where u can paste your user account to see stats
 #### see TODO file for progress
 ### links:
 https://coinsender.testnet.page - testnet  
-https://coinsender.near.page - mainnet (in deployment)
+https://coinsender.near.page - mainnet
 
 ## Realised features:
 ### contract side
@@ -21,17 +23,11 @@ https://coinsender.near.page - mainnet (in deployment)
 - Front-end side creates GET links which retrieved by contract web4 module and processing to show many views
 - User balance comes directly from Rust
 
-- ### *JS(Front-end)
+- ### *JS/TS(Front-end)
 - Custom function for convertation choosed token to yocto amounts based on ```formatNearAmount``` from ```near-api-js```
 - 90-s styled design from https://nostalgic-css.github.io/NES.css/[NES-CSS]
 - Sequence of state changes using only ```localStorage```
 - When token whitelisted by owner he actually comes to index page as pretty-view with icon and also as SELECT option
-
-
-### Unimplemented (in-deploy)
-This is my first experience with front-end side and it goes little hard. But JS part is 70% done (still with several bugs on it).
-But I'm on the way to finish web and go to upgrade user vault functions and introduce rewards for most activity senders.  For example - top 10 senders by number of send and by summ in USN will be rewarded with free-month without fees / 100 sends without fees, etc.
-
 
 #### Build the contract
 
@@ -42,13 +38,18 @@ But I'm on the way to finish web and go to upgrade user vault functions and intr
 
 ```bash
 near dev-deploy -f --wasmFile target/wasm32-unknown-unknown/release/coinsender.wasm
+
 near deploy -f --wasmFile target/wasm32-unknown-unknown/release/coinsender.wasm --accountId coinsender.testnet
 ```
-----------------------------------------------------------------------------------------------------------------
+mainnet
+```
+export NEAR_ENV=mainnet
+near deploy -f --wasmFile target/wasm32-unknown-unknown/release/coinsender.wasm --accountId coinsender.near
+```
 #### envs
 
 ```shell
-# testnet tokens
+# testnet
 export CONTRACT_ID=coinsender.testnet
 export AURORA=aurora.fakes.testnet
 export WETH=weth.fakes.testnet
@@ -56,12 +57,13 @@ export PARAS=paras.fakes.testnet
 export WNEAR=wrap.testnet
 export DAI=dai.fakes.testnet
 export USDC=usdc.fakes.testnet
-export USN=usn.fakes.testnet
+export USN=usdn.testnet
 export CHEDDAR=token-v3.cheddar.testnet
 export USDT=usdt.fakes.testnet
 export LNC=lnc.factory.tokenhub.testnet
 export REF=ref.fakes.testnet
-# mainnet tokens
+# mainnet
+export CONTRACT_ID=coinsender.near
 export USDT=dac17f958d2ee523a2206206994597c13d831ec7.factory.bridge.near
 export DAI=6b175474e89094c44da98b954eedeac495271d0f.factory.bridge.near
 export WNEAR=wrap.near
@@ -100,16 +102,16 @@ near call $CONTRACT_ID set_owner '{"new_owner":"'$OWNER'"}' --accountId $CONTRAC
 #### tokens
 ```shell
 # private
-near call $CONTRACT_ID whitelist_token '{"token_id": "'$AURORA'"}' --accountId $OWNER --depositYocto 1 --gas $GAS #or call from CONTRACT_ID
-near call $CONTRACT_ID remove_token '{"token_id": "'$REF'"}' --accountId $CONTRACT_ID  --gas $GAS                 #or call from OWNER
-# public view
-near call $CONTRACT_ID get_whitelisted_tokens '' --accountId $USER_ACCOUNT
+near call $CONTRACT_ID whitelist_token '{"token_id": "'$stNEAR'"}' --accountId $CONTRACT_ID --depositYocto 1 --gas $GAS #or can be called from $OWNER
+near call $CONTRACT_ID remove_token '{"token_id": "'$REF'"}' --accountId $CONTRACT_ID  --gas $GAS     #or can be called from $OWNER
+
+near call $CONTRACT_ID get_whitelisted_tokens '' --accountId $CONTRACT_ID
 ```
 #### vault
 ```shell
 near call $CONTRACT_ID deposit_near '' --accountId $USER_ACCOUNT --amount 2 --gas $GAS
 # E18 decimals use accurate!
-near call $REF ft_transfer_call '{"receiver_id":"'$CONTRACT_ID'","amount": "'$TEN_TOKENS'", "msg":"deposit"}' --accountId $USER_ACCOUNT --depositYocto 1 --gas $GAS
+near call guacharo.testnet ft_transfer_call '{"receiver_id":"'$CONTRACT_ID'","amount": "'$TEN_TOKENS'", "msg":"deposit"}' --accountId rmlsnk.testnet --depositYocto 1 --gas $GAS
 # E18 decimals use accurate!
 near call $LNC ft_transfer_call '{"receiver_id":"'$CONTRACT_ID'","amount": "'$TEN_TOKENS'", "msg":"deposit"}' --accountId $USER_ACCOUNT2 --depositYocto 1 --gas $GAS
 # Withdraw all ( in case NEAR withdraw no args for function call)
@@ -118,7 +120,7 @@ near call $CONTRACT_ID withdraw_all '' --accountId $USER_ACCOUNT2 --depositYocto
 
 #view
 near call $CONTRACT_ID get_deposit_by_token '{"account_id": "'$USER_ACCOUNT'", "token_id":"'$REF'"}' --accountId $USER_ACCOUNT
-near call $CONTRACT_ID get_user_vault '{"account_id": "'$USER_ACCOUNT'"}' --accountId $USER_ACCOUNT
+near call $CONTRACT_ID get_user_vault '{"account_id": "'rmlsnk.testnet'"}' --accountId rmlsnk.testnet
 near call $CONTRACT_ID get_user_accounts '{}' --accountId $USER_ACCOUNT
 ```
 #### SEND !!!

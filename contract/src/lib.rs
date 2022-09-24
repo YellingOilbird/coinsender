@@ -12,8 +12,8 @@ mod user;
 mod utils;
 mod tokens;
 mod views;
-mod web4;
-mod web4helper;
+//mod web4;
+//mod web4helper;
 
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize)]
@@ -21,6 +21,8 @@ pub struct Contract {
     owner_id: Option<AccountId>,
     user_vaults: UnorderedMap<AccountId, VVault>,
     tokens: UnorderedMap<TokenContractId, WhitelistedToken>,
+    donate_receivers: Vec<AccountId>,
+    treasury: Balance
 }
 
 impl Default for Contract {
@@ -28,7 +30,9 @@ impl Default for Contract {
         Self {
             owner_id: None,
             user_vaults: UnorderedMap::new(StorageKey::UserDeposits),
-            tokens: UnorderedMap::new(StorageKey::WhitelistedTokens)
+            tokens: UnorderedMap::new(StorageKey::WhitelistedTokens),
+            donate_receivers: vec![],
+            treasury: 0
         }
     }
 }
@@ -38,6 +42,8 @@ impl Contract {
     //register multiple accounts to TOKEN_CONTRACT. Because of gas limit it may be only less then 50 accounts
     #[payable]
     pub fn multi_storage_deposit(&mut self, accounts: Vec<AccountId>, token_id: TokenContractId) {
+        let account_id = env::predecessor_account_id();
+        let mut vault = self.internal_get_vault_or_create(&account_id);
 
         let total_accounts = accounts.len();
         assert!(total_accounts <= 50, "ERR_TOO_MANY_ACCOUNTS!");
@@ -55,7 +61,6 @@ impl Contract {
         );
 
         for account in accounts {
-            
             ft_contract::ext(token_id.clone())
                 .with_static_gas(CALLBACK_GAS)
                 .with_attached_deposit(storage_bond)
@@ -63,15 +68,27 @@ impl Contract {
 
             log!("Register storage for account @{}", account);
         }
+        
+        self.internal_update_user_vault(
+            UpdateVaultAction::AfterMultiStorageDeposit, 
+            &mut vault, 
+            None, 
+            None, 
+            Some(env::attached_deposit())
+        );
+        // insert updated one
+        self.user_vaults.insert(&account_id, &vault.into());
     }
+
     //multisender transfer from deposit
     #[payable]
     pub fn send_from_balance(&mut self, accounts: Vec<Operation>, token_id: Option<TokenContractId>) {
         assert_one_yocto();
 
         let account_id = env::predecessor_account_id();
-        assert!(self.user_vaults.get(&account_id).is_some() ,"{}", ERR_UNKNOWN_USER);
-        let user_balance = self.get_deposit_by_token(account_id.clone(), token_id.clone()).0;
+        let mut vault = self.internal_get_vault(&account_id);
+
+        let user_balance = vault.get_deposit_by_token(token_id.clone()).0;
         let mut total = 0;
 
 
@@ -102,7 +119,15 @@ impl Contract {
                 );
                 total_sended += account.amount.0;
             }
-            self.internal_update_user_vault(UpdateVaultAction::AfterNewSend, account_id, Some(user_balance), token_id, Some(total_sended));
+
+            self.internal_update_user_vault(
+                UpdateVaultAction::AfterNewSend, 
+                &mut vault, 
+                Some(user_balance), 
+                token_id, 
+                Some(total_sended)
+            );
+            
         // NEAR
         } else {
             for account in accounts {
@@ -114,18 +139,28 @@ impl Contract {
                 );
                 total_sended += account.amount.0;
             }
-            self.internal_update_user_vault(UpdateVaultAction::AfterNewSend,account_id, None, None, Some(total_sended));
+            self.internal_update_user_vault(
+                UpdateVaultAction::AfterNewSend, 
+                &mut vault, 
+                None, 
+                None, 
+                Some(total_sended)
+            );
         }
+        // insert updated one
+        self.user_vaults.insert(&account_id, &vault.into());
     }
+
     // Multisend from balance without callbacks - better gas efficient, but not usable for 2FA accs.
     // Allows 30 operations per transaction. But ChunkSize = 25 is reccomended (setting in App.js button event)
     #[payable]
     pub fn send_from_balance_unsafe(&mut self, accounts: Vec<Operation>, token_id: Option<TokenContractId>) {
         assert_one_yocto();
-        //TODO - add vault update!!!
+
         let account_id = env::predecessor_account_id();
-        assert!(self.user_vaults.get(&account_id).is_some(), "{}", ERR_UNKNOWN_USER);
-        let user_balance = self.get_deposit_by_token(account_id.clone(), token_id.clone()).0;
+        let mut vault = self.internal_get_vault(&account_id);
+
+        let user_balance = vault.get_deposit_by_token(token_id.clone()).0;
         let mut total = 0;
 
         for account in &accounts {
@@ -150,7 +185,14 @@ impl Contract {
 
                 total_sended += account.amount.0;
             }
-            self.internal_update_user_vault(UpdateVaultAction::AfterNewSend, account_id, Some(user_balance), token_id, Some(total_sended));
+            self.internal_update_user_vault(
+                UpdateVaultAction::AfterNewSend, 
+                &mut vault, 
+                Some(user_balance), 
+                token_id, 
+                Some(total_sended)
+            );
+
         // NEAR
         } else {
             for account in accounts {
@@ -159,8 +201,17 @@ impl Contract {
                 
                 total_sended += account.amount.0;
             }
-            self.internal_update_user_vault(UpdateVaultAction::AfterNewSend, account_id, None, None, Some(total_sended));
+            self.internal_update_user_vault(
+                UpdateVaultAction::AfterNewSend, 
+                &mut vault, 
+                None, 
+                None, 
+                Some(total_sended)
+            );
         }
+
+        // insert updated one
+        self.user_vaults.insert(&account_id, &vault.into());
     }
 
     /// Management
@@ -174,11 +225,13 @@ impl Contract {
             "{}", ERR_NOT_ALLOWED
         );
     }
+
     /// Using for call internal methods
     pub(crate) fn assert_owner_or_self(&self) -> bool {
         env::predecessor_account_id() == env::current_account_id()
             ||  env::predecessor_account_id() == self.get_owner()
     }
+
     /// Set owner for contract - by default is None
     #[payable]
     pub fn set_owner(&mut self, new_owner: AccountId) {
@@ -188,6 +241,7 @@ impl Contract {
         self.owner_id = Some(new_owner);
         log!("@{} Setting contract owner: @{} ", env::predecessor_account_id(), self.get_owner());
     }
+
     /// Get owner for contract - by default is None
     pub fn get_owner(&self) -> AccountId {
         if let Some(owner) = self.owner_id.clone() {
@@ -196,17 +250,37 @@ impl Contract {
             panic!("{}", ERR_OWNER_NOT_SET)
         }
     }
+
     #[payable]
     /// Method to fill Account 
     pub fn transfer_near_to_contract(&mut self) {
         let attached_deposit = env::attached_deposit();
         assert!(attached_deposit > 0, "ERR_NEGATIVE_DEPOSIT");
-        Promise::new(env::signer_account_id())
-                    .transfer(attached_deposit);
+        self.treasury += attached_deposit;
+        
+        if self.treasury >= TREASURY_LIMIT && !self.donate_receivers.is_empty() {
+            let donate_amount = self.treasury / self.donate_receivers.len() as u128;
+            for receiver in &self.donate_receivers {
+                Promise::new(receiver.clone())
+                    .transfer(donate_amount);
+                self.treasury -= donate_amount;
+            }
+        }
+
         log!(
             "@{} transfer {} yoctoNEAR to contract balance", 
             env::signer_account_id(),
             attached_deposit
         )
+    }
+
+    #[payable]
+    pub fn add_donate_receiver(&mut self, donate_receiver: AccountId) {
+        self.assert_owner_or_self();
+        self.donate_receivers.push(donate_receiver);
+    }
+
+    pub fn get_treasury_balance(&self) -> U128 {
+        self.treasury.into()
     }
 }
