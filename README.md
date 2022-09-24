@@ -1,11 +1,9 @@
 ![](./contract/common/assets/coinsender_logo.png)
 
-# COINSENDER 💸 
-#### see user vault web4 example on https://coinsender.testnet.page/processing/finality/rmlsnk.testnet where u can paste your user account to see stats
-#### see TODO file for progress
+# 💸 COINSENDER 💸 
 ### links:
-https://coinsender.testnet.page - testnet  
-https://coinsender.near.page - mainnet
+https://coinsender.testnet.page - testnet (web4)  
+https://coin-sender.herokuapp.com - mainnet
 
 ## Realised features:
 ### contract side
