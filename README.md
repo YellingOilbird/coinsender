@@ -4,9 +4,8 @@
     <h2 align="center">send fungible tokens to several recipients with one single transaction</h2>
 </p>
 
-### links:
-https://coinsender.testnet.page - testnet (web4)  
-https://coin-sender.herokuapp.com - mainnet
+### mainnet:
+https://coin-sender.herokuapp.com
 
 ## Realised features:
 ### contract side
