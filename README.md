@@ -1,6 +1,9 @@
 ![](./contract/common/assets/coinsender_logo.png)
 
 # 💸 COINSENDER 💸 
+
+Send Fungible Tokens to several recipients with one single transaction
+
 ### links:
 https://coinsender.testnet.page - testnet (web4)  
 https://coin-sender.herokuapp.com - mainnet
