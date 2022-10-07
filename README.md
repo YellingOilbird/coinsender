@@ -6,6 +6,8 @@
 
 ### mainnet:
 https://coin-sender.herokuapp.com
+### testnet:
+https://coin-sender-testnet.herokuapp.com/
 
 ## Realised features:
 ### contract side
